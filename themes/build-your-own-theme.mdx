@@ -1,0 +1,260 @@
+---
+title: "Build and Distribute a Custom Theme"
+sidebarTitle: "Custom Themes"
+description: "Implement the CliqueTheme SPI to create a custom terminal color theme, wire up ServiceLoader auto-discovery, and distribute it as a reusable library."
+---
+
+Clique's color system is open. A theme is just a class that maps names to ANSI codes. Everything else — auto-discovery, `registerTheme()` by name, mixing tokens with markup — comes for free once you wire it up.
+
+## Dependencies
+
+You only need the SPI module:
+
+<CodeGroup>
+
+```xml Maven
+<dependency>
+  <groupId>io.github.kusoroadeolu</groupId>
+  <artifactId>clique-spi</artifactId>
+  <version>2.0.3</version>
+</dependency>
+```
+
+```groovy Gradle
+implementation 'io.github.kusoroadeolu:clique-spi:2.0.3'
+```
+
+</CodeGroup>
+
+If you want to reference the built-in themes while building yours, add `clique-themes` as well — but it's optional.
+
+## A Theme in Its Simplest Form
+
+Implement `CliqueTheme` from `clique-spi`. The interface requires four methods: `themeName()`, `author()`, `url()`, and `styles()`. The first three are metadata — they don't affect how colors render, but they're useful for discovery and attribution. `styles()` is where the palette lives.
+
+`AnsiCode` is an interface from `clique-spi`. The cleanest way to implement it inline is as a record:
+
+```java
+public class MyTheme implements CliqueTheme {
+
+    @Override public String themeName() { return "my-theme"; }
+
+    @Override public String author() { return "your-name"; }
+
+    @Override public String url() { return "https://github.com/you/my-theme"; }
+
+    @Override
+    public Map<String, AnsiCode> styles() {
+        return Map.of(
+            "mt_blue",    ansi(66, 135, 245, false),
+            "mt_purple",  ansi(156, 39, 176, false),
+            "bg_mt_blue", ansi(66, 135, 245, true)
+        );
+    }
+
+    private AnsiCode ansi(int r, int g, int b, boolean bg) {
+        int type = bg ? 48 : 38;
+        String code = "\u001B[%d;2;%d;%d;%dm".formatted(type, r, g, b);
+        return new Rgb(code);
+    }
+
+    private record Rgb(String code) implements AnsiCode {
+        @Override public String ansiSequence() { return code; }
+    }
+}
+```
+
+Register it and start using it:
+
+```java
+Clique.registerTheme(new MyTheme());
+Clique.parser().print("[mt_blue, bold]Hello from my theme[/]");
+```
+
+## Building a Complete Palette
+
+Here's what a full palette looks like in practice. This is a Solarized Dark implementation showing the recommended `put()` helper pattern that registers both the foreground and background variants in a single call:
+
+```java
+public class SolarizedDarkTheme implements CliqueTheme {
+
+    @Override public String themeName() { return "solarized-dark"; }
+
+    @Override public String author() { return "ethan-schoonover"; }
+
+    @Override public String url() { return "https://ethanschoonover.com/solarized"; }
+
+    @Override
+    public Map<String, AnsiCode> styles() {
+        var colors = new HashMap<String, AnsiCode>();
+
+        // Base tones
+        put(colors, "sol_base03",  0,   43,  54);
+        put(colors, "sol_base02",  7,   54,  66);
+        put(colors, "sol_base01",  88,  110, 117);
+        put(colors, "sol_base0",   131, 148, 150);
+        put(colors, "sol_base1",   147, 161, 161);
+        put(colors, "sol_base3",   253, 246, 227);
+
+        // Accent colors
+        put(colors, "sol_yellow",  181, 137, 0);
+        put(colors, "sol_orange",  203, 75,  22);
+        put(colors, "sol_red",     220, 50,  47);
+        put(colors, "sol_magenta", 211, 54,  130);
+        put(colors, "sol_violet",  108, 113, 196);
+        put(colors, "sol_blue",    38,  139, 210);
+        put(colors, "sol_cyan",    42,  161, 152);
+        put(colors, "sol_green",   133, 153, 0);
+
+        return colors;
+    }
+
+    // Registers both foreground and background in one call
+    private void put(Map<String, AnsiCode> map, String name, int r, int g, int b) {
+        map.put(name,         rgb(r, g, b, false));
+        map.put("bg_" + name, rgb(r, g, b, true));
+    }
+
+    private AnsiCode rgb(int r, int g, int b, boolean bg) {
+        String code = "\u001B[%d;2;%d;%d;%dm".formatted(bg ? 48 : 38, r, g, b);
+        return new Rgb(code);
+    }
+
+    private record Rgb(String code) implements AnsiCode {
+        @Override public String ansiSequence() { return code; }
+    }
+}
+```
+
+## Working from Hex
+
+If you're pulling colors from a design tool or palette website, hex is usually what you have. This helper converts it directly and registers both variants:
+
+```java
+private void addHex(Map<String, AnsiCode> map, String name, String hex) {
+    map.put(name,         hexToAnsi(hex, false));
+    map.put("bg_" + name, hexToAnsi(hex, true));
+}
+
+private AnsiCode hexToAnsi(String hex, boolean bg) {
+    hex = hex.startsWith("#") ? hex.substring(1) : hex;
+    int r = Integer.parseInt(hex.substring(0, 2), 16);
+    int g = Integer.parseInt(hex.substring(2, 4), 16);
+    int b = Integer.parseInt(hex.substring(4, 6), 16);
+    String code = "\u001B[%d;2;%d;%d;%dm".formatted(bg ? 48 : 38, r, g, b);
+    return new Rgb(code);
+}
+```
+
+Your palette then becomes a readable list of names and hex values that's easy to update:
+
+```java
+addHex(colors, "corp_navy",    "#003366");
+addHex(colors, "corp_gold",    "#FFB81C");
+addHex(colors, "corp_success", "#2E7D32");
+addHex(colors, "corp_error",   "#C62828");
+```
+
+## Auto-Discovery via ServiceLoader
+
+For your theme to work with `Clique.registerTheme("my-theme")` or `Clique.registerAvailableThemes()`, you need to tell Java's `ServiceLoader` where to find it.
+
+Create this file in your project resources:
+
+**`src/main/resources/META-INF/services/io.github.kusoroadeolu.clique.spi.CliqueTheme`**
+
+With one fully-qualified class name per line:
+
+```
+com.example.themes.SolarizedDarkTheme
+com.example.themes.SolarizedLightTheme
+```
+
+That's all. Your theme is now discoverable the same way any built-in theme is.
+
+### Using JPMS?
+
+Add a `provides` declaration to your `module-info.java`:
+
+```java
+module my.themes {
+    requires clique.spi;
+    provides io.github.kusoroadeolu.clique.spi.CliqueTheme
+        with com.example.themes.SolarizedDarkTheme,
+             com.example.themes.SolarizedLightTheme;
+}
+```
+
+Keep the `META-INF/services` file too — it handles non-modular classpath scenarios.
+
+## Naming Conventions
+
+**Prefix everything with your theme's identifier.** Names like `red` or `primary` will eventually collide with something else in the registry.
+
+```java
+// Good
+"sol_red", "sol_cyan", "sol_base03"
+
+// Will cause problems eventually
+"red", "cyan", "background"
+```
+
+**Background colors always use the `bg_` prefix.** It's what users expect after working with any other Clique theme.
+
+```java
+"sol_blue"     // foreground
+"bg_sol_blue"  // background
+```
+
+**Theme names use lowercase with hyphens.**
+
+```java
+return "solarized-dark";   // ✓
+return "SolarizedDark";    // ✗
+return "solarized_dark";   // works but inconsistent with convention
+```
+
+## Testing Your Theme
+
+Before shipping, run through every color to make sure nothing is invisible or misconfigured:
+
+```java
+var theme = new MyTheme();
+Clique.registerTheme(theme);
+
+theme.styles().forEach((name, code) -> {
+    if (name.startsWith("bg_")) {
+        Clique.parser().print("[" + name + ", white] " + name + " [/]");
+    } else {
+        Clique.parser().print("[" + name + "] " + name + " [/]");
+    }
+});
+```
+
+It's rough, but it catches the common mistakes: missing `ansiSequence()` implementations, forgotten colors, names that clash.
+
+## Distributing as a Library
+
+Package your theme as a standalone JAR. The structure is straightforward:
+
+```
+my-clique-themes/
+├── src/main/java/com/example/themes/
+│   ├── MyTheme.java
+│   └── MyOtherTheme.java
+└── src/main/resources/META-INF/services/
+    └── io.github.kusoroadeolu.clique.spi.CliqueTheme
+```
+
+Users add it as a dependency, and `Clique.registerAvailableThemes()` picks it up automatically with no extra setup on their end.
+
+## Terminal Support Note
+
+Themes use 24-bit RGB color. Most modern terminals support this without any configuration — iTerm2, Alacritty, Kitty, Windows Terminal, and recent GNOME Terminal all work out of the box. If colors look off, verify that `COLORTERM=truecolor` is set in your shell profile.
+
+On Windows PowerShell, you may also need to set the output encoding explicitly:
+
+```powershell
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+```

@@ -1,0 +1,97 @@
+{
+  "projectType": "sdk-library",
+  "projectName": "Clique",
+  "projectDescription": "A dependency-free and extensible Java library for styling and beautifying terminal output with ANSI colors, rich components, and a markup parser.",
+  "theme": "luma",
+  "primaryColor": "#0000ee",
+  "lightColor": null,
+  "darkColor": null,
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart"
+            ]
+          },
+          {
+            "group": "Styling",
+            "pages": [
+              "styling/markup-parser",
+              "styling/ink",
+              "styling/style-builder",
+              "styling/markup-reference"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "components/overview",
+              "components/tables",
+              "components/box",
+              "components/frame",
+              "components/tree",
+              "components/item-list",
+              "components/divider",
+              "components/progress-bars"
+            ]
+          },
+          {
+            "group": "Themes & Customization",
+            "pages": [
+              "themes/using-themes",
+              "themes/build-your-own-theme",
+              "themes/style-context",
+              "themes/advanced-styles"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Zero-dependency Java library (JVM 21+)",
+    "Markup parser with readable tag syntax ([red, bold]Text[/])",
+    "Ink: immutable, chainable ANSI string builder similar to Chalk",
+    "Full 24-bit RGB and gradient support",
+    "no-color.org compliant (respects NO_COLOR env var)",
+    "GraalVM native image compatible",
+    "Rich terminal components: tables, boxes, frames, trees, item lists, dividers, progress bars",
+    "Extensible theme system with built-in Catppuccin, Dracula, Gruvbox, Nord, Tokyo Night palettes",
+    "SPI for creating and distributing custom themes",
+    "Progress bar easing and animated transitions",
+    "StyleContext for scoped, immutable custom styles"
+  ],
+  "publicApiSurface": [
+    "Clique.parser() / Clique.parser(ParserConfiguration)",
+    "Clique.ink() / Clique.ink(StyleContext)",
+    "Clique.styleBuilder()",
+    "Clique.table() / Clique.table(TableType) / Clique.table(TableType, TableConfiguration)",
+    "Clique.box() / Clique.box(BoxType) / Clique.box(BoxType, BoxConfiguration)",
+    "Clique.frame() / Clique.frame(BoxType) / Clique.frame(BoxType, FrameConfiguration)",
+    "Clique.tree(String) / Clique.tree(String, TreeConfiguration)",
+    "Clique.list() / Clique.list(ItemListConfiguration)",
+    "Clique.divider(int) / Clique.divider(int, DividerConfiguration)",
+    "Clique.progressBar(int) / Clique.progressBar(Collection<T>) / Clique.progressBar(int, ProgressBarPreset)",
+    "Clique.rgb(int, int, int) / Clique.hex(String)",
+    "Clique.compose(AnsiCode...)",
+    "Clique.registerStyle(String, AnsiCode) / Clique.registerStyles(Map)",
+    "Clique.registerTheme(String) / Clique.registerTheme(CliqueTheme) / Clique.registerAvailableThemes()",
+    "Clique.findAvailableThemes() / Clique.findTheme(String)",
+    "Clique.enableCliqueColors() / Clique.disableCliqueColors()",
+    "MarkupParser.print(String) / MarkupParser.parse(String) / MarkupParser.getOriginalString(String)",
+    "Ink.on(Object) / Ink.of(String) / Ink.gradient(RGBAnsiCode, RGBAnsiCode)",
+    "StyleBuilder.append() / StyleBuilder.appendAndReset() / StyleBuilder.print()",
+    "ParserConfiguration.builder() with delimiter(), enableAutoReset(), enableStrictParsing(), styleContext()",
+    "StyleContext.builder().add() / StyleContext.from() / StyleContext.fromTheme()",
+    "TableConfiguration.builder() / BoxConfiguration.builder() / FrameConfiguration.builder()",
+    "ProgressBarConfiguration.builder() / ProgressBarConfiguration.fromPreset()",
+    "EasingConfiguration.builder() / EasingConfiguration.DEFAULT / EasingConfiguration.DISABLED",
+    "CliqueTheme SPI interface (themeName(), author(), url(), styles())",
+    "Component interface (get(), render(), render(PrintStream))"
+  ]
+}

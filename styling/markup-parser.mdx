@@ -1,0 +1,203 @@
+---
+title: "Markup Parser: Tag-Based Terminal Styling"
+sidebarTitle: "Markup Parser"
+description: "Use Clique's markup parser to apply colors and styles with readable bracket tags like [red, bold]Text[/] — no ANSI codes required."
+---
+
+Clique's markup parser lets you style terminal output using a simple, readable bracket tag format — no ANSI escape codes or chained method calls needed. Write `[red, bold]Error:[/]` directly in your strings and the parser converts the tags into the correct escape sequences at runtime.
+
+## Basic Usage
+
+Obtain a parser via `Clique.parser()`, then call `print()` to style and output directly, or `parse()` to get the styled string back.
+
+```java
+// Parse and print directly
+Clique.parser().print("[red, bold]Error:[/] Something went wrong");
+
+// Parse and return the styled string
+String styled = Clique.parser().parse("[red, bold]Error:[/] Something went wrong");
+System.out.println(styled);
+```
+
+### Getting the Original String
+
+Use `getOriginalString()` to strip all markup tags and retrieve the plain text, preserving content but removing all style annotations:
+
+```java
+MarkupParser parser = Clique.parser();
+String original = parser.getOriginalString("[red, bold]Hello[/] World");
+// Returns: "Hello World"
+```
+
+---
+
+## Syntax Rules
+
+The parser follows a simple, predictable set of rules for interpreting tags.
+
+| Input | Behavior |
+|---|---|
+| `[red]` | Valid — parsed and styled |
+| `[notastyle]` | Unknown style name — passed through as-is |
+| `[nested[nested]]` | Nested tags not supported — passed through as-is |
+| `[not closed [red, blue] hello` | Unclosed outer `[` — whole segment ignored |
+| `\\[red]` | Escaped bracket — renders as literal `[red]` |
+
+The parser applies an **all-or-nothing** rule per tag: if a tag cannot be cleanly interpreted, it is left entirely untouched in the output. A tag with one valid and one invalid style is not partially applied — either all styles in the tag are recognized and applied, or the whole tag is passed through verbatim.
+
+<Note>
+  `[/]` is the universal reset tag. It resets all active ANSI styles at that position, regardless of what tags were opened before it.
+</Note>
+
+---
+
+## Parser Configuration
+
+The default parser works without any setup. For more control, build a `ParserConfiguration` and pass it to `Clique.parser(configuration)`.
+
+### Configuration Options
+
+| Option | Description |
+|---|---|
+| `delimiter(char)` | Set the delimiter between styles inside a tag. Default is `,`. |
+| `enableAutoReset()` | Automatically reset styles when a new tag is encountered, preventing them from leaking into subsequent content. |
+| `enableStrictParsing()` | Throw `UnidentifiedStyleException` for any unrecognized style name found on an otherwise valid tag. |
+| `addStyle(String, AnsiCode)` | Register a single custom style available only to this parser instance. |
+| `styleContext(StyleContext)` | Attach a full `StyleContext` of named styles to this parser instance. |
+
+### Example: Space Delimiter and Auto-Reset
+
+```java
+ParserConfiguration configuration = ParserConfiguration
+        .builder()
+        .enableAutoReset()       // Reset styles between tags automatically
+        .delimiter(' ')          // Use space instead of comma as delimiter
+        .build();
+
+MarkupParser configuredParser = Clique.parser(configuration);
+
+// Space-separated styles are now valid
+configuredParser.print("[red bold]Hello[blue] World");
+```
+
+---
+
+## StyleContext
+
+`StyleContext` lets you register named styles scoped to a specific parser instance, without polluting the global style registry. This is useful for feature-local or module-level styles that should not be visible to the rest of the application.
+
+```java
+StyleContext ctx = StyleContext.builder()
+        .add("highlight", ColorCode.YELLOW)
+        .add("muted", StyleCode.DIM)
+        .build();
+
+ParserConfiguration config = ParserConfiguration.builder()
+        .styleContext(ctx)
+        .build();
+
+MarkupParser parser = Clique.parser(config);
+parser.print("[highlight]This is highlighted[/] and [muted]this is muted[/]");
+```
+
+To register just a single style without constructing a full context, use `addStyle()` directly on the builder:
+
+```java
+ParserConfiguration config = ParserConfiguration.builder()
+        .addStyle("highlight", ColorCode.YELLOW)
+        .build();
+```
+
+`StyleContext` also supports composite styles — passing multiple `AnsiCode` values to `add()` combines them under a single tag name:
+
+```java
+StyleContext ctx = StyleContext.builder()
+        .add("error",  ColorCode.BRIGHT_RED, StyleCode.BOLD)
+        .add("warn",   ColorCode.YELLOW,     StyleCode.ITALIC)
+        .add("ok",     ColorCode.BRIGHT_GREEN, StyleCode.BOLD)
+        .build();
+
+ParserConfiguration config = ParserConfiguration.builder()
+        .styleContext(ctx)
+        .enableAutoReset()
+        .enableStrictParsing()
+        .build();
+
+Clique.parser(config).print("[error]Build failed[/]");
+Clique.parser(config).print("[ok]All tests passed[/]");
+```
+
+For full details on building, merging, and using StyleContexts, see [StyleContext](/themes/style-context).
+
+### Style Resolution Order
+
+When the parser encounters a tag, it resolves style names in this order:
+
+1. **Local styles** — defined via `styleContext()` or `addStyle()` on this parser's configuration
+2. **Global custom styles** — registered via `Clique.registerStyle()`
+3. **Predefined styles** — Clique's built-in colors, backgrounds, and text styles
+
+Local styles always win. Defining `highlight` in a `StyleContext` will shadow any globally-registered style of the same name for that parser only.
+
+---
+
+## Escaping Brackets
+
+Since `[` and `]` delimit markup tags, use `\\[` to render a literal bracket in output:
+
+```java
+// Displays: [red]
+Clique.parser().print("\\[red]");
+
+// Displays: [red, bold]
+Clique.parser().print("\\[red, bold]");
+
+// Displays: Coords: [10, 20]
+Clique.parser().print("Coords: \\[10, 20]");
+```
+
+---
+
+## Exceptions
+
+### `UnidentifiedStyleException`
+
+Thrown when strict parsing is enabled and a valid tag contains an unrecognized style name:
+
+```java
+ParserConfiguration config = ParserConfiguration.builder()
+        .enableStrictParsing()
+        .build();
+
+MarkupParser parser = Clique.parser(config);
+
+// Throws UnidentifiedStyleException — "bol" is not a recognized style
+parser.parse("[red, bol]Text[/]");
+```
+
+<Warning>
+  Without `enableStrictParsing()`, unrecognized style names are silently ignored and the tag is passed through as-is. Structurally malformed tags (e.g. unclosed brackets) are always passed through regardless of strict mode.
+</Warning>
+
+---
+
+## Integration with Components
+
+Markup parsing is enabled by default in all Clique components. You can use markup tags anywhere component content is accepted — table headers, box content, tree labels, list items, frames, and dividers all process tags through the parser automatically:
+
+```java
+// Styled table headers and cells
+Clique.table(TableType.ASCII)
+    .headers("[green, bold]Name[/]", "[green, bold]Age[/]")
+    .row("[red]John[/]", "25")
+    .render();
+
+// Styled box content
+Clique.box()
+    .content("[bold, blue]This is a configured box[/]")
+    .render();
+```
+
+<Tip>
+  You can pass a custom-configured `MarkupParser` (built from a `ParserConfiguration`) to any component through its own configuration object, giving each component its own delimiter, custom styles, or strict-parsing behavior.
+</Tip>

@@ -1,0 +1,125 @@
+---
+title: "Clique Components: Terminal UI Building Blocks"
+sidebarTitle: "Overview"
+description: "All Clique components implement the Component interface, providing get(), render(), and render(PrintStream) for consistent terminal output across every UI element."
+---
+
+The `Component` interface is the foundation of every renderable element in Clique. It defines a minimal, consistent contract: produce a styled string, and know how to print it. Every built-in component — `Box`, `Divider`, `Frame`, `Tree`, `ItemList`, `Table`, and `ProgressBar` — implements this interface, so you can treat them all the same way at the call site.
+
+## Interface Methods
+
+### `get()`
+
+Builds and returns the fully formatted string representation of the component without printing it. Useful when you want to compose output, store it, or pass it somewhere else.
+
+```java
+String rendered = Clique.divider(40).get();
+```
+
+<Note>
+  Each call to `get()` performs a full render — no caching is guaranteed by the interface. Individual implementations may document their own caching behavior if applicable.
+</Note>
+
+### `render()`
+
+Prints the component to `System.out`, followed by a newline. This is the most common way to display a component.
+
+```java
+Clique.box()
+    .content("Hello, World!")
+    .render();
+```
+
+### `render(PrintStream)`
+
+Prints the component to a specific `PrintStream`. Use this to redirect output to `System.err`, a file stream, or any other custom stream.
+
+```java
+Clique.box()
+    .content("[red, bold]Something went wrong[/]")
+    .render(System.err);
+```
+
+<Warning>
+  Passing `null` as the stream throws a `NullPointerException`.
+</Warning>
+
+## Using `Component` as a Type
+
+Since every Clique component shares the `Component` interface, you can store and pass them generically without committing to a concrete type:
+
+```java
+Component warning = Clique.box()
+    .dimensions(50, 5)
+    .content("[yellow]Proceed with caution[/]");
+
+warning.render();
+```
+
+This also makes it easy to build collections of components and render them together in a loop:
+
+```java
+List<Component> report = List.of(
+    Clique.divider(60, "blue").title("Summary"),
+    Clique.table(TableType.BOX_DRAW).headers("Key", "Value").row("Status", "OK"),
+    Clique.divider(60, "blue")
+);
+
+report.forEach(Component::render);
+```
+
+## Implementing `Component`
+
+`Component` is a functional interface — only `get()` is abstract. The `render()` and `render(PrintStream)` methods are provided as defaults, so you only need to implement `get()` to create a fully working component.
+
+A common pattern is a live clock that re-evaluates on every render:
+
+```java
+Component clock = () -> {
+    var now = java.time.LocalTime.now();
+    return "[cyan]%02d:%02d:%02d[/]".formatted(now.getHour(), now.getMinute(), now.getSecond());
+};
+
+clock.render(); // prints current time to stdout
+```
+
+Custom components can also be nested inside a `Frame`, since `Frame.nest()` accepts any `Component`. The clock will be re-evaluated on every call to `frame.render()`:
+
+```java
+Clique.frame()
+    .nest(clock)
+    .render();
+```
+
+## Components
+
+<CardGroup cols="2">
+  <Card title="Tables" icon="table" href="/components/tables">
+    Render structured data with five border styles, per-column alignment, and dynamic cell updates.
+  </Card>
+  <Card title="Box" icon="square" href="/components/box">
+    Display text inside a bordered container with alignment, markup, and multi-line support.
+  </Card>
+  <Card title="Frame" icon="frame" href="/components/frame">
+    Stack and border multiple components with per-node alignment and lazy re-evaluation.
+  </Card>
+  <Card title="Tree" icon="sitemap" href="/components/tree">
+    Show hierarchical data with `├─` and `└─` connectors, markup labels, and colored guides.
+  </Card>
+  <Card title="Item List" icon="list" href="/components/item-list">
+    Build symbol-driven nested lists with cascading configuration and full markup support.
+  </Card>
+  <Card title="Divider" icon="minus" href="/components/divider">
+    Draw horizontal separator lines with optional centered titles and custom characters.
+  </Card>
+  <Card title="Progress Bars" icon="spinner" href="/components/progress-bars">
+    Track operations with presets, dynamic style ranges, easing animations, and iterable wrapping.
+  </Card>
+</CardGroup>
+
+## Things to Watch Out For
+
+- `get()` never returns `null`.
+- `render()` always appends a newline after the output.
+- `render(null)` throws a `NullPointerException`.
+- Each call to `get()` or `render()` is a full re-render. If your component does expensive work, handle caching yourself.

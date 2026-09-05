@@ -1,0 +1,199 @@
+---
+title: "Box: Bordered Text Containers"
+sidebarTitle: "Box"
+description: "Display text, warnings, and messages inside a bordered box. Supports four border styles, text alignment, markup, multi-line content, and custom dimensions."
+---
+
+Boxes are single-cell containers that display text with a decorative border. They're ideal for standalone messages, warnings, info banners, or any content that benefits from visual isolation on the terminal.
+
+## Box Types
+
+Choose a border style by passing a `BoxType` to `Clique.box()`:
+
+| Style | Enum Value | Description |
+|---|---|---|
+| ASCII | `BoxType.ASCII` | Plain borders using `-`, `|`, and `+` |
+| Classic | `BoxType.CLASSIC` | Classic single-line box style |
+| Rounded | `BoxType.ROUNDED` | Rounded corners; **default** |
+| Double Line | `BoxType.DOUBLE_LINE` | Double-stroke borders |
+
+## Basic Usage
+
+```java
+Clique.box()
+    .dimensions(40, 5)   // width, height
+    .content("This is my first box")
+    .render();
+```
+
+### Box Dimensions
+
+- **Width** — horizontal size of the box in characters.
+- **Height** — vertical size of the box in lines.
+
+```java
+Clique.box()
+    .dimensions(50, 5)
+    .content("A wider, shorter box")
+    .render();
+```
+
+## Markup in Content
+
+Boxes automatically parse markup tags in the content string:
+
+```java
+Clique.box()
+    .dimensions(40, 5)
+    .content("[yellow, bold]Warning:[/] This is an important message that needs attention")
+    .render();
+```
+
+## Multi-line Content
+
+Boxes handle newlines properly. You can use text blocks for structured multi-line content:
+
+```java
+Clique.box(BoxType.CLASSIC)
+    .dimensions(40, 10)
+    .content(
+        """
+        [green, bold]Success![/]
+        Your operation completed successfully.
+        You can now proceed to the next step.
+        """
+    )
+    .render();
+```
+
+## Text Alignment
+
+Pass a `TextAlign` value as the second argument to `content()` to control where the text is positioned inside the box. The default is `CENTER`.
+
+```java
+Clique.box(BoxType.CLASSIC)
+    .dimensions(40, 10)
+    .content(
+        """
+        [green, bold]Success![/]
+        Your operation completed.
+        """, TextAlign.TOP_LEFT
+    )
+    .render();
+```
+
+All nine alignments are available:
+
+| | Left | Center | Right |
+|---|---|---|---|
+| **Top** | `TOP_LEFT` | `TOP_CENTER` | `TOP_RIGHT` |
+| **Middle** | `CENTER_LEFT` | `CENTER` | `CENTER_RIGHT` |
+| **Bottom** | `BOTTOM_LEFT` | `BOTTOM_CENTER` | `BOTTOM_RIGHT` |
+
+## Box Configuration
+
+Use `BoxConfiguration` to customize appearance and behavior. Access the builder via `BoxConfiguration.builder()`.
+
+### Default Values
+
+| Option | Default |
+|---|---|
+| `textAlign` | `TextAlign.CENTER` |
+| `parser` | `MarkupParser.DEFAULT` |
+| `borderColor` | `{}` (no color) |
+| `padding` | `2` |
+
+### Text Alignment
+
+```java
+BoxConfiguration config = BoxConfiguration.builder()
+    .textAlign(TextAlign.TOP_LEFT)
+    .build();
+```
+
+### Padding
+
+Adds horizontal and vertical space between the border and the content. The default is `2`. Note that padding is **deducted from the given width**, not added on top of it.
+
+```java
+BoxConfiguration config = BoxConfiguration.builder()
+    .padding(3)
+    .build();
+```
+
+<Warning>
+  Padding cannot be negative — an `IllegalArgumentException` is thrown.
+</Warning>
+
+### Border Color
+
+Set a uniform border color using a color name string or `AnsiCode` values directly:
+
+```java
+// Using a color name string
+BoxConfiguration config = BoxConfiguration.builder()
+    .borderColor("blue")
+    .build();
+
+// Using AnsiCode values directly
+BoxConfiguration config = BoxConfiguration.builder()
+    .borderColor(ColorCode.BLUE)
+    .build();
+```
+
+### Custom Parser
+
+Provide a custom parser for markup processing:
+
+```java
+ParserConfiguration parserConfig = ParserConfiguration.builder()
+    .delimiter(' ')
+    .build();
+
+BoxConfiguration config = BoxConfiguration.builder()
+    .parser(Clique.parser(parserConfig))
+    .build();
+```
+
+## Full Configuration Example
+
+```java
+BoxConfiguration config = BoxConfiguration.builder()
+    .borderColor("blue")
+    .textAlign(TextAlign.CENTER)
+    .parser(Clique.parser())
+    .build();
+
+Clique.box(BoxType.DOUBLE_LINE, config)
+    .content("[bold, blue]This is a configured box[/]")
+    .render();
+```
+
+## Examples
+
+### Alert Box
+
+```java
+Clique.box(BoxType.DOUBLE_LINE)
+    .content("[red, bold]⚠ ALERT ⚠[/]\n\nSystem maintenance in progress")
+    .render();
+```
+
+### Info Box
+
+```java
+Clique.box()
+    .dimensions(60, 10)
+    .content(
+        "[blue, bold]ℹ Information[/]\n\n" +
+        "This feature is currently in beta. " +
+        "Please report any issues you encounter."
+    )
+    .render();
+```
+
+## Things to Watch Out For
+
+- `Clique.box()` defaults to `BoxType.ROUNDED`.
+- Passing `null` for `textAlign`, `parser`, or `borderColor` in the builder throws a `NullPointerException`.
+- Padding is **deducted from the box's given width**, not added on top of it.

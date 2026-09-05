@@ -1,0 +1,88 @@
+---
+title: "Clique: Terminal Styling Library for Java"
+sidebarTitle: "Introduction"
+description: "Clique is a zero-dependency Java 21 library for ANSI-styled terminal output with a markup parser, rich UI components, and an extensible theme system."
+---
+
+Clique is a zero-dependency Java 21 library for building beautiful terminal applications. It provides a concise markup parser for inline styling, a chainable `Ink` API for composing ANSI strings programmatically, and a suite of rich UI components — tables, boxes, progress bars, trees, frames, and more — all driven from a single `Clique` facade.
+
+## Why Clique?
+
+<CardGroup cols={2}>
+  <Card title="Zero Dependencies" icon="box">
+    Clique ships as a self-contained JAR with no third-party runtime dependencies. Add one artifact to your build and you are done — no classpath conflicts, no transitive surprises.
+  </Card>
+  <Card title="no-color.org Compliant" icon="ban">
+    Clique automatically respects the `NO_COLOR` environment variable as specified by [no-color.org](https://no-color.org). Set the variable to any non-empty value and all ANSI output is silently stripped — no code changes required.
+  </Card>
+  <Card title="GraalVM Native Image" icon="bolt">
+    Clique avoids reflection entirely. It compiles cleanly to GraalVM native images without additional configuration, making it a solid choice for CLI tools distributed as native binaries.
+  </Card>
+  <Card title="24-bit Color & Gradients" icon="palette">
+    Full RGB support via `Clique.rgb()`, `Clique.hex()`, and the `Ink` gradient API. Apply smooth per-character color gradients across any string with a single method call.
+  </Card>
+  <Card title="Better Emoji Support" icon="face-smile">
+    Clique measures column widths using a Unicode-aware `CharWidth` utility that correctly handles emoji presentation sequences, ZWJ clusters, and complex multi-codepoint grapheme clusters, keeping tables and boxes aligned.
+  </Card>
+  <Card title="Extensible Theme System" icon="swatchbook">
+    Register popular color schemes from `clique-themes` with a single line, or implement the `CliqueTheme` SPI to distribute your own themes as a standalone JAR.
+  </Card>
+</CardGroup>
+
+## Modules
+
+Clique is organized as a multi-module Maven project. Most applications only need `clique-core`.
+
+| Artifact | Version | Description |
+|---|---|---|
+| `clique-core` | `4.0.3` | Main library — all components, the markup parser, Ink, and the `Clique` facade |
+| `clique-spi` | `2.0.3` | Interfaces for building custom themes (`CliqueTheme`) and custom `AnsiCode` implementations |
+| `clique-themes` | `1.0.1` | Optional built-in themes: Catppuccin, Dracula, Gruvbox, Nord, and Tokyo Night |
+| `clique-test-support` | — | Testing utilities for projects that build on or extend Clique |
+
+<Note>
+  `clique-core` already depends on `clique-spi` transitively. You only need to declare `clique-spi` explicitly if you are building a custom theme or `AnsiCode` implementation.
+</Note>
+
+## Features Overview
+
+<CardGroup cols={2}>
+  <Card title="Markup Parser" icon="code" href="/styling/markup-parser">
+    Write human-readable style tags inline — `[red, bold]Error:[/]` — and let Clique handle the ANSI translation. Supports colors, backgrounds, text styles, and custom registered names.
+  </Card>
+  <Card title="Ink" icon="pen-nib" href="/styling/ink">
+    A chainable, immutable ANSI string builder inspired by Chalk. Compose styles fluently, create reusable base styles, and apply 24-bit color gradients with a single call.
+  </Card>
+  <Card title="StyleBuilder" icon="brush" href="/styling/style-builder">
+    Build styled output programmatically by composing `AnsiCode` values directly. The low-level foundation that powers both the parser and Ink.
+  </Card>
+  <Card title="Tables" icon="table" href="/components/tables">
+    Render grid data with box-draw or classic borders. Supports header rows, per-column alignment, inline markup, and configurable border colors.
+  </Card>
+  <Card title="Boxes" icon="square" href="/components/box">
+    Single-cell bordered containers with text wrapping, auto-sizing, multiple border styles, and full markup support in content.
+  </Card>
+  <Card title="Progress Bars" icon="bars-progress" href="/components/progress-bars">
+    Visual feedback for long-running tasks. Wrap any `Collection` for automatic iteration-based progress, or drive a manual bar with `tick()`. Comes with built-in presets and easing.
+  </Card>
+  <Card title="Themes" icon="paintbrush" href="/themes/using-themes">
+    Drop in Catppuccin, Dracula, Gruvbox, Nord, or Tokyo Night with `Clique.registerTheme()`. Theme color tokens become immediately available as named styles in the markup parser.
+  </Card>
+  <Card title="Build Your Own Theme" icon="hammer" href="/themes/build-your-own-theme">
+    Implement the `CliqueTheme` SPI interface and register your theme programmatically or via `ServiceLoader` discovery. Ship themes as standalone JARs.
+  </Card>
+</CardGroup>
+
+## Thread Safety
+
+<Note>
+  **Style registration/lookup and config objects (once built) are thread-safe.** You can safely call `Clique.registerStyle()`, `Clique.registerTheme()`, and read from configuration objects concurrently.
+
+  All other components — including `MarkupParser`, `Ink`, `Table`, `Box`, `ProgressBar`, and `Frame` — are **not** thread-safe. Create and use component instances on a single thread, and do not share them across thread boundaries.
+</Note>
+
+## License & Requirements
+
+<Tip>
+  Clique is released under the **Apache 2.0 License** and requires **JVM 21 or later**. It has no runtime dependencies outside of the Java standard library.
+</Tip>

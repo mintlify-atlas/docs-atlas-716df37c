@@ -1,0 +1,186 @@
+---
+title: "StyleBuilder: Type-Safe ANSI String Builder"
+sidebarTitle: "StyleBuilder"
+description: "StyleBuilder provides an imperative, type-safe API for composing ANSI-styled strings by chaining append and appendAndReset calls with ColorCode and StyleCode enums."
+---
+
+`StyleBuilder` provides an imperative, type-safe API for composing ANSI-styled strings segment by segment. Instead of writing markup tags or chaining fluent style methods, you call `append()` and `appendAndReset()` on a builder, passing `ColorCode` and `StyleCode` enum values alongside each text segment. The result is a fully styled string ready for printing.
+
+Use `StyleBuilder` when you prefer compile-time enum safety and an explicit, segment-by-segment composition model. For markup-in-content use cases — where styles are embedded directly in data strings — the [Markup Parser](/styling/markup-parser) is usually a better fit.
+
+Obtain a `StyleBuilder` via `Clique.styleBuilder()`:
+
+```java
+Clique.styleBuilder()
+    .appendAndReset("Hello", ColorCode.BLUE, StyleCode.BOLD)
+    .appendAndReset("World", ColorCode.RED)
+    .print();
+```
+
+---
+
+## `appendAndReset(text, codes...)`
+
+Applies the given styles to `text` and appends a reset sequence immediately after. Subsequent segments start with a clean style state.
+
+```java
+Clique.styleBuilder()
+    .appendAndReset("Hello", ColorCode.BLUE, StyleCode.BOLD, StyleCode.UNDERLINE)
+    .appendAndReset("World", ColorCode.RED,  StyleCode.DIM,  StyleCode.REVERSE_VIDEO)
+    .print();
+```
+
+Each segment here is fully independent — the styles on `"Hello"` have no effect on `"World"`.
+
+---
+
+## `append(text, codes...)`
+
+Applies styles to `text` without appending a reset. Styles carry over into the next segment unless they are explicitly reset later.
+
+```java
+Clique.styleBuilder()
+    .append("Hello", ColorCode.BLUE, StyleCode.BOLD, StyleCode.UNDERLINE)
+    .append("World", ColorCode.RED,  StyleCode.DIM,  StyleCode.REVERSE_VIDEO)
+    .print();
+```
+
+Here the styles accumulate across segments. Use `appendAndReset` at the end of a carry-over chain to return to a clean state.
+
+---
+
+## Combining Both in One Chain
+
+Mix `append` and `appendAndReset` freely to control exactly where styles carry over and where they stop:
+
+```java
+Clique.styleBuilder()
+    .append("WARN",              ColorCode.YELLOW, StyleCode.BOLD) // styles carry into next segment
+    .append(": ",                ColorCode.YELLOW)                  // still yellow, bold carries over
+    .appendAndReset("disk usage at 90%", ColorCode.WHITE)           // white; reset after
+    .appendAndReset("action required",   ColorCode.RED, StyleCode.BOLD) // independent segment
+    .print();
+```
+
+The `WARN: ` prefix is yellow and bold because `append` doesn't reset between those two calls. After `appendAndReset`, the next segment starts fresh.
+
+---
+
+## Getting the Result as a String
+
+The last `append` or `appendAndReset` call in the chain returns the fully composed `String`. Pass it to `System.out.println` or store it for later use:
+
+```java
+String output = Clique.styleBuilder()
+    .appendAndReset("Title: ",   ColorCode.CYAN, StyleCode.BOLD)
+    .appendAndReset("My Document", ColorCode.WHITE);
+
+System.out.println(output);
+```
+
+## `print()`
+
+As a convenience, call `print()` at the end of the chain to write directly to standard output:
+
+```java
+Clique.styleBuilder()
+    .appendAndReset("✓ ", ColorCode.GREEN, StyleCode.BOLD)
+    .appendAndReset("Build successful", ColorCode.WHITE)
+    .print();
+```
+
+---
+
+## Available Codes
+
+### `ColorCode` — Foreground Colors
+
+Standard and bright ANSI foreground colors:
+
+| Code | Description |
+|---|---|
+| `RED` | Red |
+| `GREEN` | Green |
+| `YELLOW` | Yellow |
+| `BLUE` | Blue |
+| `MAGENTA` | Magenta |
+| `CYAN` | Cyan |
+| `WHITE` | White |
+| `BLACK` | Black |
+| `BRIGHT_RED` | Bright Red |
+| `BRIGHT_GREEN` | Bright Green |
+| `BRIGHT_YELLOW` | Bright Yellow |
+| `BRIGHT_BLUE` | Bright Blue |
+| `BRIGHT_MAGENTA` | Bright Magenta |
+| `BRIGHT_CYAN` | Bright Cyan |
+| `BRIGHT_WHITE` | Bright White |
+| `BRIGHT_BLACK` | Bright Black |
+
+### `StyleCode` — Text Styles
+
+| Code | Effect |
+|---|---|
+| `BOLD` | Bold / emphasized text |
+| `DIM` | Dimmed / reduced brightness |
+| `ITALIC` | Italic text |
+| `UNDERLINE` | Underlined text |
+| `DOUBLE_UNDERLINE` | Double underlined text |
+| `REVERSE_VIDEO` | Swap foreground and background colors |
+| `INVISIBLE` | Hidden text |
+| `STRIKE` | Strikethrough text |
+
+### Background Colors
+
+Background color codes follow the `BG_[COLOR]` pattern:
+
+| Code | Description |
+|---|---|
+| `BG_RED`, `BG_GREEN`, `BG_YELLOW` … | Standard background colors |
+| `BG_BRIGHT_RED`, `BG_BRIGHT_GREEN` … | Bright background color variants |
+
+---
+
+## Examples
+
+### Success and Error Messages
+
+```java
+// Success
+Clique.styleBuilder()
+    .appendAndReset("✓ ", ColorCode.GREEN, StyleCode.BOLD)
+    .appendAndReset("Build successful", ColorCode.WHITE)
+    .print();
+
+// Error with detail
+Clique.styleBuilder()
+    .appendAndReset("✗ ", ColorCode.RED, StyleCode.BOLD)
+    .appendAndReset("Build failed: ", ColorCode.RED)
+    .appendAndReset("Missing dependency", ColorCode.WHITE, StyleCode.DIM)
+    .print();
+```
+
+### Highlighted Output
+
+```java
+Clique.styleBuilder()
+    .appendAndReset("Warning: ", ColorCode.YELLOW, StyleCode.BOLD)
+    .appendAndReset("This action cannot be undone", ColorCode.WHITE)
+    .print();
+```
+
+### Warning Prefix with Style Carry-Over
+
+```java
+Clique.styleBuilder()
+    .append("WARN",              ColorCode.YELLOW, StyleCode.BOLD)
+    .append(": ",                ColorCode.YELLOW)
+    .appendAndReset("disk usage at 90%", ColorCode.WHITE)
+    .appendAndReset("action required",   ColorCode.RED, StyleCode.BOLD)
+    .print();
+```
+
+---
+
+<Tip>
+  Use the [Markup Parser](/styling/markup-parser) when you want to embed style information directly inside content strings (e.g. in data, configuration, or user-facing messages). Use `StyleBuilder` when you prefer compile-time enum safety and a segment-by-segment composition model where styling decisions live alongside the code that produces the output.
+</Tip>

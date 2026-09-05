@@ -1,0 +1,257 @@
+---
+title: "Tables: Structured Data in the Terminal"
+sidebarTitle: "Tables"
+description: "Render structured data with Clique's table component. Supports five border styles, per-column alignment, markup in cells, null handling, and dynamic cell updates."
+---
+
+Tables let you display structured data in a clean, formatted grid. Clique supports five border styles, per-column alignment overrides, inline markup in any cell, and dynamic updates after creation. Tables do not support multi-line cell content.
+
+## Table Types
+
+Choose a style by passing a `TableType` to `Clique.table()`:
+
+| Style | Enum Value | Description |
+|---|---|---|
+| ASCII | `TableType.ASCII` | Standard borders using `-`, `|`, `+` characters |
+| Compact / Minimal | `TableType.COMPACT` / `TableType.MINIMAL` | Minimalist layout with fewer borders |
+| Box Draw | `TableType.BOX_DRAW` | Box-drawing characters; **default** |
+| Rounded Box Draw | `TableType.ROUNDED_BOX_DRAW` | Box-draw characters with rounded corners |
+| Markdown | `TableType.MARKDOWN` | GitHub-style markdown table format |
+
+## Basic Usage
+
+```java
+Clique.table(TableType.ASCII)
+    .headers("Name", "Age", "Class")
+    .row("John", "25", "Class A")
+    .row("Doe", "26", "Class B")
+    .render();
+```
+
+## Table Manipulation
+
+Tables support dynamic updates after the data has been added.
+
+### Update a Cell
+
+```java
+Table table = Clique.table(TableType.ASCII)
+    .headers("Name", "Age", "Status")
+    .row("Alice", "25", "Active")
+    .row("Bob", "30", "Inactive");
+
+// Update row 1, column 2 (zero-indexed; row 0 is headers)
+table.updateCell(1, 2, "Active");
+```
+
+### Remove a Cell
+
+```java
+// Replace a cell with the configured nullReplacement value
+table.removeCell(1, 1);
+```
+
+### Remove a Row
+
+```java
+// Remove an entire data row (row 0 — the header row — cannot be removed)
+table.removeRow(1);
+```
+
+### Get the Table as a String
+
+```java
+String tableString = table.get();
+System.out.println(tableString);
+```
+
+## Markup in Cells
+
+Markup tags are parsed automatically in headers and row values:
+
+```java
+Clique.table(TableType.BOX_DRAW)
+    .headers(
+        "[cyan, bold]Product[/]",
+        "[cyan, bold]Price[/]",
+        "[cyan, bold]Stock[/]"
+    )
+    .row(
+        "[yellow]Widget[/]",
+        "[green]$19.99[/]",
+        "[red, bold]Low[/]"
+    )
+    .row(
+        "[yellow]Gadget[/]",
+        "[green]$29.99[/]",
+        "In Stock"
+    )
+    .render();
+```
+
+## Initializing from Existing Data
+
+If your data already exists as a collection, `fromRows()` and `fromColumns()` build the table in one call instead of chaining `.row()` repeatedly.
+
+### `fromRows(SequencedCollection)`
+
+The first row is treated as headers; every subsequent row is a data row:
+
+```java
+SequencedCollection<List<String>> rows = List.of(
+    List.of("Name", "Age", "Class"),
+    List.of("John", "25", "Class A"),
+    List.of("Doe",  "26", "Class B")
+);
+
+Clique.table(TableType.ASCII)
+    .fromRows(rows)
+    .render();
+```
+
+### `fromColumns(SequencedMap)`
+
+Maps each header to its column values, top to bottom:
+
+```java
+SequencedMap<String, List<String>> map = new LinkedHashMap<>();
+map.put("Name",  List.of("John", "Doe"));
+map.put("Age",   List.of("25",   "26"));
+map.put("Class", List.of("Class A", "Class B"));
+
+Clique.table(TableType.ASCII)
+    .fromColumns(map)
+    .render();
+```
+
+<Note>
+  Columns of differing lengths are padded with the table's configured `nullReplacement` value (default: empty string). Both methods throw `IllegalArgumentException` if the given collection or map is null or empty.
+</Note>
+
+## Table Configuration
+
+Use `TableConfiguration` to customize appearance and behavior. Access the builder via `TableConfiguration.builder()`.
+
+### Default Values
+
+| Option | Default |
+|---|---|
+| `alignment` | `CellAlign.LEFT` |
+| `parser` | `MarkupParser.DEFAULT` |
+| `borderColor` | `{}` (no color) |
+| `padding` | `1` |
+| `nullReplacement` | `""` (empty string) |
+| `columnAlignment` | `{}` (empty map) |
+
+### Alignment
+
+Control how all cell content is aligned, then override individual columns as needed:
+
+```java
+TableConfiguration config = TableConfiguration.builder()
+    .alignment(CellAlign.CENTER)        // center everything by default
+    .columnAlignment(0, CellAlign.LEFT) // column 0 stays left-aligned
+    .columnAlignment(2, CellAlign.RIGHT) // column 2 is right-aligned
+    .build();
+```
+
+Available values: `CellAlign.LEFT` (default), `CellAlign.CENTER`, `CellAlign.RIGHT`.
+
+<Note>
+  Column alignment always takes precedence over the table-wide alignment setting.
+</Note>
+
+You can also set multiple column alignments at once with a map:
+
+```java
+Map<Integer, CellAlign> colAligns = new HashMap<>();
+colAligns.put(0, CellAlign.LEFT);
+colAligns.put(2, CellAlign.RIGHT);
+
+TableConfiguration config = TableConfiguration.builder()
+    .columnAlignment(colAligns)
+    .build();
+```
+
+### Padding
+
+Whitespace added around cell content. Default is `1`. Padding cannot be negative.
+
+```java
+TableConfiguration config = TableConfiguration.builder()
+    .padding(3)
+    .build();
+```
+
+### Null Replacement
+
+Configure what gets displayed when a cell value is `null` or a cell is removed:
+
+```java
+TableConfiguration config = TableConfiguration.builder()
+    .nullReplacement("N/A")
+    .build();
+
+Clique.table(TableType.ASCII, config)
+    .headers("Name", "Age", "City")
+    .row("Alice", null, "NYC")  // null becomes "N/A"
+    .render();
+```
+
+### Border Color
+
+Set a uniform border color using a color name string or `AnsiCode` values directly:
+
+```java
+// Using a color name string
+TableConfiguration config = TableConfiguration.builder()
+    .borderColor("blue")
+    .build();
+
+// Using AnsiCode values directly
+TableConfiguration config = TableConfiguration.builder()
+    .borderColor(ColorCode.BLUE)
+    .build();
+```
+
+<Note>
+  Uniform styling is recommended for tables. Due to their complex layout, passing multiple `AnsiCode` values may not align visually as expected.
+</Note>
+
+### Custom Parser
+
+Provide a custom configured parser for markup processing:
+
+```java
+ParserConfiguration parserConfig = ParserConfiguration.builder()
+    .delimiter(' ')
+    .build();
+
+TableConfiguration config = TableConfiguration.builder()
+    .parser(Clique.parser(parserConfig))
+    .build();
+```
+
+## Full Configuration Example
+
+```java
+TableConfiguration config = TableConfiguration.builder()
+    .columnAlignment(0, CellAlign.LEFT)
+    .borderColor("red")
+    .alignment(CellAlign.CENTER)
+    .padding(1)
+    .build();
+
+Clique.table(TableType.MARKDOWN, config)
+    .headers("[green, bold]Name[/]", "[green, bold]Age[/]", "[green, bold]Class[/]")
+    .row("[red]John[/]", "25", "Class A")
+    .row("[red]Doe[/]",  "26", "Class B")
+    .render();
+```
+
+## Things to Watch Out For
+
+- **Column alignment** always overrides table-wide alignment.
+- Passing `null` for `alignment`, `parser`, `borderColor`, `nullReplacement`, or `columnAlignment` in the builder throws a `NullPointerException`.
+- Padding cannot be negative — an `IllegalArgumentException` is thrown.
+- The column index passed to `columnAlignment(int, CellAlign)` cannot be negative — an `IllegalArgumentException` is thrown.

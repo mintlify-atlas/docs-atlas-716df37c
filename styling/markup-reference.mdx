@@ -1,0 +1,166 @@
+---
+title: "Markup Tag Reference for Clique"
+sidebarTitle: "Markup Reference"
+description: "Complete reference of all built-in colors, background colors, and text styles available as markup tags in Clique's parser. Includes standard, bright, and background variants."
+---
+
+This page is the complete reference for all built-in tag names recognized by Clique's markup parser. Every name listed here can be used inside `[...]` tags — with the parser directly, or in any component that accepts markup-enabled content (tables, boxes, trees, lists, frames, and dividers).
+
+For parser configuration and syntax rules, see the [Markup Parser](/styling/markup-parser) page.
+
+---
+
+## Text Colors
+
+### Standard Colors
+
+| Color | Tag | Example |
+|---|---|---|
+| Red | `red` | `[red]Text[/]` |
+| Green | `green` | `[green]Text[/]` |
+| Yellow | `yellow` | `[yellow]Text[/]` |
+| Blue | `blue` | `[blue]Text[/]` |
+| Magenta | `magenta` | `[magenta]Text[/]` |
+| Cyan | `cyan` | `[cyan]Text[/]` |
+| White | `white` | `[white]Text[/]` |
+| Black | `black` | `[black]Text[/]` |
+
+### Bright Colors
+
+Prefix any standard color name with `*` for its bright variant:
+
+| Color | Tag | Example |
+|---|---|---|
+| Bright Red | `*red` | `[*red]Text[/]` |
+| Bright Green | `*green` | `[*green]Text[/]` |
+| Bright Yellow | `*yellow` | `[*yellow]Text[/]` |
+| Bright Blue | `*blue` | `[*blue]Text[/]` |
+| Bright Magenta | `*magenta` | `[*magenta]Text[/]` |
+| Bright Cyan | `*cyan` | `[*cyan]Text[/]` |
+| Bright White | `*white` | `[*white]Text[/]` |
+| Bright Black | `*black` | `[*black]Text[/]` |
+
+```java
+Clique.parser().print("[red]Standard red[/] vs [*red]Bright red[/]");
+```
+
+---
+
+## Background Colors
+
+### Standard Backgrounds
+
+Prefix any standard color name with `bg_` to apply it as a background:
+
+| Color | Tag | Example |
+|---|---|---|
+| Red background | `bg_red` | `[bg_red]Text[/]` |
+| Green background | `bg_green` | `[bg_green]Text[/]` |
+| Yellow background | `bg_yellow` | `[bg_yellow]Text[/]` |
+| Blue background | `bg_blue` | `[bg_blue]Text[/]` |
+| Magenta background | `bg_magenta` | `[bg_magenta]Text[/]` |
+| Cyan background | `bg_cyan` | `[bg_cyan]Text[/]` |
+| White background | `bg_white` | `[bg_white]Text[/]` |
+| Black background | `bg_black` | `[bg_black]Text[/]` |
+
+### Bright Backgrounds
+
+Use the `*bg_` prefix for bright background variants:
+
+| Color | Tag | Example |
+|---|---|---|
+| Bright Red BG | `*bg_red` | `[*bg_red]Text[/]` |
+| Bright Green BG | `*bg_green` | `[*bg_green]Text[/]` |
+| Bright Yellow BG | `*bg_yellow` | `[*bg_yellow]Text[/]` |
+| Bright Blue BG | `*bg_blue` | `[*bg_blue]Text[/]` |
+| Bright Magenta BG | `*bg_magenta` | `[*bg_magenta]Text[/]` |
+| Bright Cyan BG | `*bg_cyan` | `[*bg_cyan]Text[/]` |
+| Bright White BG | `*bg_white` | `[*bg_white]Text[/]` |
+| Bright Black BG | `*bg_black` | `[*bg_black]Text[/]` |
+
+```java
+Clique.parser().print("[bg_red, white]Alert![/]");
+Clique.parser().print("[*bg_blue, *white]Bright background[/]");
+```
+
+---
+
+## Text Styles
+
+| Style | Tag | Description |
+|---|---|---|
+| Bold | `bold` | Bold / emphasized text |
+| Dim | `dim` | Reduced brightness |
+| Italic | `italic` | Italic text (terminal support varies) |
+| Underline | `ul` | Underlined text |
+| Double Underline | `dbl_ul` | Double underlined text |
+| Strikethrough | `strike` | Strikethrough text |
+| Reverse Video | `rv` | Swaps foreground and background colors |
+| Invisible | `inv` | Hidden text |
+| Reset | `/` | Resets all active styles |
+
+```java
+Clique.parser().print("[bold, ul]Important[/] [dim]subtle note[/]");
+Clique.parser().print("[rv]Inverted colors![/]");
+```
+
+---
+
+## Combining Styles
+
+Multiple tags can be combined inside a single `[...]` tag, separated by the configured delimiter (`,` by default):
+
+```java
+// Color + style
+Clique.parser().print("[red, bold]Bold red text[/]");
+
+// Foreground + background + style
+Clique.parser().print("[white, bg_blue, bold]White on blue, bold[/]");
+
+// Multiple styles at once
+Clique.parser().print("[red, bold, ul, italic]Everything at once[/]");
+```
+
+---
+
+## Quick Reference
+
+| Category | Example Tag | Result |
+|---|---|---|
+| Text color | `[red]Text[/]` | Red text |
+| Bright color | `[*blue]Text[/]` | Bright blue text |
+| Background | `[bg_yellow, black]Text[/]` | Black text on yellow background |
+| Bright background | `[*bg_green, white]Text[/]` | White text on bright green background |
+| Text style | `[bold, ul, red]Text[/]` | Red, bold, underlined |
+| Reset | `[/]` | Resets all active styles at this position |
+
+---
+
+## ANSI Color Detection
+
+Clique detects ANSI support automatically. The `NO_COLOR` environment variable is respected — when `NO_COLOR` is set, all color output is suppressed without any code changes required.
+
+You can also control color output manually at runtime:
+
+```java
+Clique.enableCliqueColors();   // Force enable ANSI color output
+Clique.disableCliqueColors();  // Force disable ANSI color output
+```
+
+<Note>
+  `disableCliqueColors()` suppresses ANSI output globally for all Clique components. Call `enableCliqueColors()` to re-enable it after disabling.
+</Note>
+
+---
+
+## Terminal Compatibility
+
+Standard and bright colors work in virtually any terminal that supports ANSI codes.
+
+For truecolor features used elsewhere in Clique (such as `rgb()` in Ink, gradient rendering, and hex colors), your terminal must support 24-bit color:
+
+- **Check support:** Run `echo $COLORTERM` — it should output `truecolor` or `24bit`
+- **Enable truecolor:** Set `COLORTERM=truecolor` in your shell profile if needed
+- **Compatible terminals:** iTerm2, Alacritty, Kitty, Windows Terminal, and recent versions of GNOME Terminal all support truecolor by default
+
+Without truecolor support, 24-bit color features may display with reduced accuracy or fall back to the nearest 256-color approximation depending on the terminal.

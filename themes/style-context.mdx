@@ -1,0 +1,199 @@
+---
+title: "StyleContext: Scoped Custom Styles"
+sidebarTitle: "StyleContext"
+description: "StyleContext lets you attach named custom styles to a specific parser without touching the global registry, keeping styles isolated, immutable, and leak-free."
+---
+
+`Clique.registerStyle()` writes into a single, shared, global table visible to every parser in your application. This is convenient for quick scripts, but it comes at a cost as applications grow:
+
+- Any code, anywhere, can register a style with the same name and silently overwrite what another part of your app registered.
+- A style registered by one module is visible to every other module, whether that module wants it or not.
+- Tests that register styles can leak state into other tests unless someone remembers to clean up.
+- It's hard to look at a piece of code and know which styles are actually available, since the answer depends on global state that could have been mutated by something else entirely.
+
+`StyleContext` avoids all of this. It's an immutable, self-contained bundle of styles that you build once and attach to a specific parser. Nothing outside that parser can see or change it, and it can't be mutated after it's built.
+
+<Tip>
+  Use `StyleContext` for styles that belong to a specific feature, module, or component. Reserve the global registry (`Clique.registerStyle()`) for things that are genuinely constant across your whole application — like a fixed brand color palette that every part of the app should agree on.
+</Tip>
+
+## Basic Usage
+
+Build a context, attach it to a `ParserConfiguration`, then create a parser from that configuration:
+
+```java
+StyleContext ctx = StyleContext.builder()
+        .add("highlight", ColorCode.YELLOW)
+        .add("muted", StyleCode.DIM)
+        .build();
+
+ParserConfiguration config = ParserConfiguration.builder()
+        .styleContext(ctx)
+        .build();
+
+MarkupParser parser = Clique.parser(config);
+parser.print("[highlight]This is highlighted[/] and [muted]this is muted[/]");
+```
+
+The styles in `ctx` are only usable through parsers configured with it. A parser built from a different configuration, or the default `Clique.parser()`, has no knowledge of `highlight` or `muted`.
+
+### Quick Single-Style Shortcut
+
+If you only need one style and don't want to build a full context, `ParserConfiguration` has a shortcut:
+
+```java
+ParserConfiguration config = ParserConfiguration.builder()
+        .addStyle("highlight", ColorCode.YELLOW)
+        .build();
+```
+
+## Building a StyleContext
+
+### From Individual Styles
+
+The builder's `add()` method has a few overloads depending on what you're registering.
+
+**A single `AnsiCode`:**
+
+```java
+StyleContext ctx = StyleContext.builder()
+        .add("highlight", ColorCode.YELLOW)
+        .build();
+```
+
+**Multiple `AnsiCode` values combined into one style** (varargs):
+
+```java
+StyleContext ctx = StyleContext.builder()
+        .add("error", ColorCode.BRIGHT_RED, StyleCode.BOLD)
+        .build();
+```
+
+This combines the given codes into a single composite style stored under one name. `[error]` applies both the color and bold styling together.
+
+**A `List` of `AnsiCode` values**, if you already have them collected:
+
+```java
+List<AnsiCode> codes = List.of(ColorCode.BRIGHT_RED, StyleCode.BOLD);
+
+StyleContext ctx = StyleContext.builder()
+        .add("error", codes)
+        .build();
+```
+
+All three forms store exactly one `AnsiCode` per name. The multi-argument forms combine their inputs first.
+
+### From a Map
+
+If you already have styles as a `Map<String, AnsiCode>`, bulk-register them in one call:
+
+```java
+Map<String, AnsiCode> styles = Map.of(
+        "highlight", ColorCode.YELLOW,
+        "muted", StyleCode.DIM
+);
+
+StyleContext ctx = StyleContext.builder()
+        .add(styles)
+        .build();
+```
+
+There's also a static shortcut that skips the builder entirely:
+
+```java
+StyleContext ctx = StyleContext.from(styles);
+```
+
+### From Another StyleContext
+
+Merge one context's styles into another while building:
+
+```java
+StyleContext base = StyleContext.builder()
+        .add("highlight", ColorCode.YELLOW)
+        .build();
+
+StyleContext extended = StyleContext.builder()
+        .add(base)
+        .add("muted", StyleCode.DIM)
+        .build();
+```
+
+To get an independent copy of an existing context, use the static factory:
+
+```java
+StyleContext copy = StyleContext.from(base);
+```
+
+`copy` holds its own internal map. Nothing you do to `base` (not that you can mutate it anyway) affects `copy`, or vice versa.
+
+### From a Theme
+
+If you have a registered theme and want its colors available as a scoped context instead of globally:
+
+```java
+StyleContext ctx = StyleContext.fromTheme("catppuccin-mocha");
+```
+
+This throws `NoSuchThemeException` if no theme with that name can be found.
+
+### Empty Context
+
+`StyleContext.NONE` is a ready-made empty context. Passing it to `styleContext()` is a no-op:
+
+```java
+ParserConfiguration config = ParserConfiguration.builder()
+        .styleContext(StyleContext.NONE)
+        .build();
+```
+
+This is mostly useful as an explicit default value, for example in a method that accepts an optional `StyleContext` parameter.
+
+## Immutability
+
+Once `build()` is called, the resulting `StyleContext` cannot be changed. There is no `remove()` or `set()` on `StyleContext` itself — only on the builder, before `build()` is called. If you need a modified version of an existing context, build a new one:
+
+```java
+StyleContext updated = StyleContext.builder()
+        .add(existing)
+        .add("new-style", ColorCode.CYAN)
+        .build();
+```
+
+`StyleContext` is documented as immutable and thread-safe. `StyleContextBuilder` is **not** thread-safe — synchronize externally if a single builder instance is shared across threads.
+
+## Style Resolution Order
+
+When a parser encounters a markup tag, it resolves styles in this order:
+
+1. **Local styles** — from the parser's attached `StyleContext` (or via `addStyle()`)
+2. **Global custom styles** — registered with `Clique.registerStyle()`
+3. **Predefined styles** — Clique's built-in colors and text styles
+
+Local styles always win. If you register `highlight` in a `StyleContext` and the same name also exists in the global registry, the parser uses your local one. This means a `StyleContext` can also safely shadow a global style for a specific parser without touching the global registry or affecting any other parser.
+
+## Looking Up Styles Directly
+
+To inspect what a `StyleContext` has registered under a given name, without going through a parser, use `get()`:
+
+```java
+AnsiCode code = ctx.get("highlight");
+```
+
+This returns `null` if no style is registered under that name in this context. It does **not** fall back to the global registry or predefined styles the way the parser's resolution order does.
+
+## Using with Ink
+
+`StyleContext` works with `Ink` as well as the markup parser:
+
+```java
+Clique.ink(ctx).of("ctp_mauve").bold().on("Hello");
+```
+
+## Things to Watch Out For
+
+- All `add()` overloads on the builder throw `NullPointerException` if any argument is `null`.
+- `StyleContext.from(StyleContext)` throws `NullPointerException` if the given context is `null`.
+- `StyleContext.fromTheme(String)` throws `NullPointerException` if the theme name is `null`, and `NoSuchThemeException` if no theme with that name is registered or discoverable.
+- `get()` returns `null` — not an exception — when a name isn't found.
+- `StyleContextBuilder` is not thread-safe; synchronize externally if a single builder is shared across threads.

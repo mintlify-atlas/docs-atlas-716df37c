@@ -1,0 +1,277 @@
+---
+title: "Frame: Layout Container for Stacked Components"
+sidebarTitle: "Frame"
+description: "Frame draws a bordered rectangle around vertically stacked Clique components. Nest tables, progress bars, trees, lists, and raw strings with per-node alignment."
+---
+
+A `Frame` draws a bordered rectangle around a vertical stack of Clique components. Unlike `Box`, a frame has no opinion about text — it doesn't wrap, align, or manipulate string content. It just draws a border around whatever its children produce and stacks them top to bottom.
+
+## Frame Types
+
+Choose a border style by passing a `BoxType` to `Clique.frame()`:
+
+| Style | Enum Value | Description |
+|---|---|---|
+| ASCII | `BoxType.ASCII` | Plain borders using `-`, `|`, and `+` |
+| Classic | `BoxType.CLASSIC` | Classic single-line border style |
+| Rounded | `BoxType.ROUNDED` | Rounded corners; **default** |
+| Double Line | `BoxType.DOUBLE_LINE` | Double-stroke borders |
+
+## Basic Usage
+
+```java
+Clique.frame()
+    .nest("Hello from a frame")
+    .render();
+```
+
+## Nesting Components
+
+Any Clique component that implements `Component` can be nested inside a frame:
+
+```java
+Table table = Clique.table(TableType.BOX_DRAW)
+    .headers("Name", "Age")
+    .row("Alice", "25")
+    .row("Bob", "30");
+
+ProgressBar bar = Clique.progressBar(100, ProgressBarPreset.BLOCKS);
+bar.tick(70);
+
+ItemList list = Clique.list()
+    .item("✓", "Auth service")
+    .item("✓", "User service");
+
+Clique.frame()
+    .nest(table)
+    .nest(bar)
+    .nest(list)
+    .render();
+```
+
+## Adding a Title
+
+Pass a string (markup supported) to `.title()` to display it in the top border of the frame:
+
+```java
+Clique.frame()
+    .title("[bold]My App[/]")
+    .nest(table)
+    .render();
+```
+
+## Nesting Raw Strings
+
+Plain strings and markup strings are both supported as nested children:
+
+```java
+Clique.frame()
+    .nest("Plain string")
+    .nest("[green, bold]Styled string[/]")
+    .render();
+```
+
+## Per-Node Alignment
+
+Control where each child sits within the frame width using `FrameAlign`:
+
+```java
+Clique.frame()
+    .nest(header, FrameAlign.CENTER)
+    .nest(table,  FrameAlign.LEFT)
+    .nest("[dim]footer[/]", FrameAlign.RIGHT)
+    .render();
+```
+
+## Title Alignment
+
+The frame title can be aligned independently within the top border:
+
+```java
+// Left-aligned title
+Clique.frame()
+    .title("My App", FrameAlign.LEFT)
+    .nest(table)
+    .render();
+
+// Centered title (default)
+Clique.frame()
+    .title("My App")
+    .nest(table)
+    .render();
+
+// Right-aligned title
+Clique.frame()
+    .title("My App", FrameAlign.RIGHT)
+    .nest(table)
+    .render();
+```
+
+Available alignments: `FrameAlign.LEFT`, `FrameAlign.CENTER` (default), `FrameAlign.RIGHT`.
+
+## Width
+
+By default, the frame derives its width from the widest nested child. You can set it explicitly if you need a specific size:
+
+```java
+Clique.frame()
+    .width(60)
+    .nest(table)
+    .render();
+```
+
+<Note>
+  Width cannot be set to zero or a negative value — an `IllegalArgumentException` is thrown.
+</Note>
+
+## Frame Configuration
+
+Use `FrameConfiguration` to customize appearance and behavior. Access the builder via `FrameConfiguration.builder()`.
+
+### Default Values
+
+| Option | Default |
+|---|---|
+| `frameAlign` | `FrameAlign.CENTER` |
+| `parser` | `MarkupParser.DEFAULT` |
+| `borderColor` | `{}` (no color) |
+| `padding` | `2` |
+
+### Default Alignment
+
+Set the default alignment for all nested children. Individual `.nest()` calls can still override this per node:
+
+```java
+FrameConfiguration config = FrameConfiguration.builder()
+    .frameAlign(FrameAlign.LEFT)
+    .build();
+```
+
+### Padding
+
+Horizontal padding inside the frame. Default is `2`. Padding cannot be negative.
+
+```java
+FrameConfiguration config = FrameConfiguration.builder()
+    .padding(4)
+    .build();
+```
+
+### Border Color
+
+Set a uniform border color using a color name string or `AnsiCode` values directly:
+
+```java
+// Using a color name string
+FrameConfiguration config = FrameConfiguration.builder()
+    .borderColor("red")
+    .build();
+
+// Using AnsiCode values directly
+FrameConfiguration config = FrameConfiguration.builder()
+    .borderColor(ColorCode.RED)
+    .build();
+```
+
+### Custom Parser
+
+Provide a custom parser for markup processing in string nodes and titles:
+
+```java
+ParserConfiguration parserConfig = ParserConfiguration.builder()
+    .delimiter(' ')
+    .build();
+
+FrameConfiguration config = FrameConfiguration.builder()
+    .parser(Clique.parser(parserConfig))
+    .build();
+```
+
+## Full Configuration Example
+
+```java
+FrameConfiguration config = FrameConfiguration.builder()
+    .frameAlign(FrameAlign.CENTER)
+    .padding(3)
+    .borderColor("blue")
+    .build();
+
+Clique.frame(BoxType.DOUBLE_LINE, config)
+    .title("[bold, cyan]Dashboard[/]", FrameAlign.CENTER)
+    .nest(headerTable,  FrameAlign.CENTER)
+    .nest(progressBar,  FrameAlign.LEFT)
+    .nest("[dim]last updated: just now[/]", FrameAlign.RIGHT)
+    .render();
+```
+
+## Lazy Evaluation
+
+Components nested inside a frame are evaluated lazily — every call to `get()` or `render()` re-invokes each `Component` to produce fresh output. This means dynamic components like clocks, counters, or live status strings work without any extra wiring:
+
+```java
+Component clock = () -> {
+    var now = java.time.LocalTime.now();
+    return "[cyan]%02d:%02d:%02d[/]".formatted(now.getHour(), now.getMinute(), now.getSecond());
+};
+
+// clock is re-evaluated on every render call
+Clique.frame()
+    .nest(clock)
+    .render();
+```
+
+<Note>
+  Raw strings passed to `nest()` are static — only `Component` instances get re-evaluated on each render.
+</Note>
+
+## Getting the Frame as a String
+
+Use `get()` to retrieve the rendered frame as a string without printing:
+
+```java
+String frameString = Clique.frame()
+    .title("Report")
+    .nest(table)
+    .get();
+
+System.out.println(frameString);
+```
+
+## Examples
+
+### Nested Tree
+
+```java
+TreeConfiguration treeConfig = TreeConfiguration.builder()
+    .connectorColor("*cyan, bold")
+    .build();
+
+Tree tree = Clique.tree("[*magenta, bold]clique-lib/", treeConfig);
+
+Tree src = tree.add("[*cyan, bold]src/");
+Tree core = src.add("[cyan]core/");
+core.add("[green]Parser.java         [dim]✓ 312 lines");
+core.add("[green]StyleResolver.java  [dim]✓ 198 lines");
+core.add("[yellow]Renderer.java       [dim]⚠ needs review");
+
+Tree tests = tree.add("[*cyan, bold]tests/");
+tests.add("[green, bold]ParserTest.java     [dim]✓ 14/14 pass");
+tests.add("[red, bold]RendererTest.java   [dim]✗  9/14 pass");
+tests.add("[dim, strike]TreeTest.java       skipped");
+
+tree.add("[white]README.md");
+tree.add("[dim].gitignore");
+
+Clique.frame(BoxType.CLASSIC)
+    .title("Project Structure", FrameAlign.LEFT)
+    .nest(tree)
+    .render();
+```
+
+## Things to Watch Out For
+
+- A nested component's content width **cannot exceed the frame's width** — an exception is thrown if it does.
+- The **title width cannot exceed the frame width** — keep titles shorter than the frame's content area.
+- Frame width is derived from the **widest child** automatically, so you generally don't need to set it manually.
+- Passing `null` for `frameAlign`, `parser`, or `borderColor` in the builder throws a `NullPointerException`.
+- Padding cannot be negative — an `IllegalArgumentException` is thrown.

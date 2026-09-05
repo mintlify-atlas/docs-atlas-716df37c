@@ -1,47 +1,146 @@
 ---
-title: "Quickstart"
-description: "Begin with a guide on the fastest path to a successful outcome"
+title: "Get Started with Clique"
+sidebarTitle: "Quickstart"
+description: "Learn how to add Clique to a Java project and render styled terminal output, tables, and progress bars in under five minutes."
 ---
 
-Describe how someone begins using your product. What is the first thing they need to do? Are there any prerequisites?
+In this guide you will add Clique to an existing Java 21 project, print your first styled terminal line using the markup parser, chain styles with Ink, render a table, track progress over a collection, and apply a built-in color theme — all in a handful of lines of code.
 
-A quickstart should take someone from zero to using your product. They'll get a quick win and a sense of what they can accomplish.
-
-## Prerequisites
-
-Before you begin, you must have:
-
-- Requirement one (for example, Node.js 18+, a free account, an API key)
-- Requirement two (for example, a compatible device, a compatible browser, a compatible operating system)
-
-## Get started
+## Installation & First Steps
 
 <Steps>
-  <Step title="Install">
-    Describe how to install your product or sign up.
+  <Step title="Add the dependency">
+    Add `clique-core` to your build file. No other dependencies are required.
 
-    ```bash
-    npm install your-package
+    <CodeGroup>
+      ```xml Maven
+      <dependency>
+          <groupId>io.github.kusoroadeolu</groupId>
+          <artifactId>clique-core</artifactId>
+          <version>4.0.3</version>
+      </dependency>
+      ```
+
+      ```gradle Gradle
+      dependencies {
+          implementation 'io.github.kusoroadeolu:clique-core:4.0.3'
+      }
+      ```
+    </CodeGroup>
+  </Step>
+
+  <Step title="Print your first styled line">
+    The markup parser lets you embed style tags directly in strings. Tags follow the `[style]text[/]` syntax and can combine multiple styles with a comma.
+
+    ```java
+    Clique.parser().print("[red, bold]Error:[/] Something went wrong");
+    ```
+
+    The `[/]` closing tag resets all active styles. Any color, background, or text-style name recognized by Clique can be used as a tag token.
+
+    <Tip>
+      Escape a literal bracket with a backslash: `\[red]` renders as `[red]` in the output rather than being interpreted as a style tag.
+    </Tip>
+  </Step>
+
+  <Step title="Chain styles with Ink">
+    `Ink` is a chainable, immutable ANSI string builder. Each method returns a new `Ink` instance, so you can safely store a base style and derive variants from it without mutating the original.
+
+    ```java
+    // One-shot: chain styles and apply them to a string
+    Clique.ink().red().bold().on("Error");
+
+    // Reusable base styles
+    Ink bold = Clique.ink().bold();
+    bold.red().on("error");     // bold + red
+    bold.yellow().on("warn");   // bold + yellow — the original bold stays untouched
+    ```
+
+    `Ink` also supports 24-bit RGB colors and per-character gradients:
+
+    ```java
+    Clique.ink().bold().gradient("#FF69B4", "#6495ED").on("Gradient text");
     ```
   </Step>
-  <Step title="Configure">
-    Describe any setup or configuration needed before first use.
 
-    ```bash
-    your-cli init
+  <Step title="Render a table">
+    Build a table by chaining `.headers()` and `.row()` calls, then call `.render()` to print it. The default style uses box-draw borders.
+
+    ```java
+    Clique.table()
+        .headers("Name", "Age", "Status")
+        .row("Alice", "25", "Active")
+        .row("Bob", "30", "Inactive")
+        .render();
     ```
+
+    Cells support inline markup, and border colors can be customized via a named style or a direct `AnsiCode`.
   </Step>
-  <Step title="Run it">
-    Show the first thing a user does to see it working.
 
-    ```bash
-    your-cli start
+  <Step title="Track progress over a collection">
+    Wrap any `Collection` with `Clique.progressBar()` to get an `IterableProgressBar`. The progress bar advances and re-renders automatically on each iteration — no manual `tick()` calls needed.
+
+    ```java
+    for (var file : Clique.progressBar(files)) {
+        process(file);
+    }
     ```
+
+    `IterableProgressBar` is single-use. Attempting to iterate it a second time throws an `IllegalStateException`.
+  </Step>
+
+  <Step title="Apply a built-in theme">
+    Register a theme by name to make its color tokens immediately available as style tags in the markup parser. This step requires the `clique-themes` dependency (see [below](#adding-clique-themes)).
+
+    ```java
+    // Requires clique-themes dependency
+    Clique.registerTheme("catppuccin-mocha");
+    Clique.parser().print("[ctp_mauve, bold]Welcome![/]");
+    ```
+
+    After registration, all Catppuccin Mocha color tokens — such as `ctp_mauve`, `ctp_blue`, `ctp_green` — are available as named styles everywhere in Clique.
   </Step>
 </Steps>
 
-<Tip>
-  Give people a way to get help. This could be a link to a support page, a chat with a customer support agent, or a forum for your product.
+## Adding clique-themes
 
-  Example: Need help? Reach out to us at [support@yourcompany.com](mailto:support@yourcompany.com).
-</Tip>
+The built-in themes (Catppuccin, Dracula, Gruvbox, Nord, Tokyo Night) are packaged in a separate optional artifact. Add it alongside `clique-core`:
+
+<CodeGroup>
+  ```xml Maven
+  <dependency>
+      <groupId>io.github.kusoroadeolu</groupId>
+      <artifactId>clique-themes</artifactId>
+      <version>1.0.1</version>
+  </dependency>
+  ```
+
+  ```gradle Gradle
+  dependencies {
+      implementation 'io.github.kusoroadeolu:clique-themes:1.0.1'
+  }
+  ```
+</CodeGroup>
+
+Once on the classpath, themes are discoverable via `Clique.findAvailableThemes()` and can be registered individually by name or all at once with `Clique.registerAvailableThemes()`.
+
+<Note>
+  Clique automatically respects the `NO_COLOR` environment variable. When `NO_COLOR` is set to any non-empty value, all ANSI escape sequences are stripped from output across every component — no code changes are needed.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Markup Parser" icon="code" href="/styling/markup-parser">
+    Explore the full tag syntax: colors, backgrounds, text styles, custom registered names, and escape sequences.
+  </Card>
+  <Card title="Ink" icon="pen-nib" href="/styling/ink">
+    Learn the complete Ink API including RGB colors, gradients, background colors, hex codes, and hyperlinks.
+  </Card>
+  <Card title="Components" icon="puzzle-piece" href="/components/tables">
+    Dive into tables, boxes, progress bars, trees, frames, item lists, and dividers.
+  </Card>
+  <Card title="Themes" icon="paintbrush" href="/themes/using-themes">
+    Use built-in themes or build and distribute your own with the `CliqueTheme` SPI.
+  </Card>
+</CardGroup>

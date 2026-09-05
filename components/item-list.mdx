@@ -1,0 +1,174 @@
+---
+title: "ItemList: Symbol-Driven Nested Lists"
+sidebarTitle: "Item List"
+description: "Build nested, symbol-driven terminal lists with ItemList. Each item takes a symbol, content, and optional sublist. Config cascades automatically to sublists."
+---
+
+`ItemList` builds nested, symbol-driven lists with full markup support. Each item gets a symbol, content, and optionally a sublist. Unlike `Tree`, which owns the connector characters, `ItemList` gives you full control over the symbol on every item — making it the right tool for task lists, build reports, CLI menus, and similar structured output.
+
+<Note>
+  **`@Stable` since `4.0.1`.**
+</Note>
+
+## Basic Usage
+
+```java
+Clique.list()
+    .item("•", "Buy groceries")
+    .item("•", "Write tests")
+    .item("•", "Ship it")
+    .render();
+```
+
+## Nesting
+
+Pass a sublist as the third argument to `item()`. The parent's configuration cascades into all sublists automatically — no need to configure each level separately:
+
+```java
+Clique.list()
+    .item("→", "Backend",
+        Clique.list()
+            .item("✓", "Auth service")
+            .item("✓", "User service")
+            .item("✗", "[red]Payment gateway[/]")
+    )
+    .item("→", "Frontend",
+        Clique.list()
+            .item("✓", "Landing page")
+            .item("✗", "[red]Dashboard[/]")
+    )
+    .render();
+```
+
+**Nesting rules:**
+- Passing `null` as a sublist throws `NullPointerException`.
+- Nesting a list within itself throws `IllegalArgumentException`.
+- Sublists render depth-first — each sublist fully resolves before the next sibling item.
+
+## `item()` Overloads
+
+```java
+.item("•", "content")                   // symbol + content
+.item("•", "content", Clique.list()...) // symbol + content + sublist
+```
+
+Symbols are full markup strings — `"[red]✗[/]"` works fine.
+
+## `render()` vs `get()`
+
+```java
+list.render();          // prints to stdout
+String s = list.get();  // returns the rendered string
+```
+
+## Item List Configuration
+
+Use `ItemListConfiguration` to customize indentation and symbol spacing. Access the builder via `ItemListConfiguration.builder()`.
+
+| Option | Default | Constraint |
+|---|---|---|
+| `indentSize` | `2` | Cannot be less than `1` |
+| `symbolSpacing` | `1` | Cannot be negative |
+| `parser` | `MarkupParser.DEFAULT` | — |
+
+```java
+ItemListConfiguration config = ItemListConfiguration.builder()
+    .indentSize(4)            // spaces per level, default 2
+    .symbolSpacing(2)         // spaces between symbol and content, default 1
+    .parser(Clique.parser())
+    .build();
+
+Clique.list(config)
+    .item("▸", "[bold]Section[/]",
+        Clique.list()
+            .item("–", "Subsection item")
+    )
+    .render();
+```
+
+<Note>
+  Config set on a parent list cascades into all nested sublists. Set it once at the top level.
+</Note>
+
+## Markup in Symbols and Content
+
+Markup works in symbols, content, or both:
+
+```java
+Clique.list()
+    .item("[cyan]▸[/]", "[bold]Section Title[/]",
+        Clique.list()
+            .item("[green]✓[/]", "Thing that worked")
+            .item("[yellow]~[/]", "Thing that kind of worked")
+            .item("[red]✗[/]",   "Thing that did not work")
+    )
+    .render();
+```
+
+## Examples
+
+### Sprint Board
+
+```java
+Clique.list()
+    .item("→", "[bold]Sprint 12[/]",
+        Clique.list()
+            .item("[green]✓[/]", "[dim, strike]Auth service[/]")
+            .item("[green]✓[/]", "[dim, strike]User profile page[/]")
+            .item("[yellow]~[/]", "Notification system — [yellow]in review[/]",
+                Clique.list()
+                    .item("!", "Waiting on design sign-off")
+            )
+            .item("[red]✗[/]", "[red]Payment integration[/]",
+                Clique.list()
+                    .item("!", "Stripe keys not in env")
+                    .item("!", "Webhook endpoint missing")
+            )
+    )
+    .render();
+```
+
+### Build Report
+
+```java
+Clique.list()
+    .item("[bold]>[/]", "[bold, cyan]Build Report — v2.4.1[/]",
+        Clique.list()
+            .item("[green]✓[/]", "Compiled 42 files in 1.3s")
+            .item("[green]✓[/]", "108 tests passed")
+            .item("[yellow]⚠[/]", "2 deprecation warnings",
+                Clique.list()
+                    .item("–", "StringUtils.format() — use formatAndReset()")
+                    .item("–", "Flag enum — superseded by markup symbols")
+            )
+            .item("[red]✗[/]", "Coverage at 74% — threshold is 80%")
+    )
+    .render();
+```
+
+### Nested CLI Menu
+
+```java
+ItemListConfiguration config = ItemListConfiguration.builder()
+    .indentSize(3)
+    .build();
+
+Clique.list(config)
+    .item("▸", "[cyan, bold]Main Menu[/]",
+        Clique.list()
+            .item("▸", "File",
+                Clique.list()
+                    .item("–", "New")
+                    .item("–", "Open")
+                    .item("–", "Save")
+            )
+            .item("▸", "Edit",
+                Clique.list()
+                    .item("–", "Cut")
+                    .item("–", "Copy")
+                    .item("–", "Paste")
+            )
+            .item("▸", "View")
+    )
+    .render();
+```

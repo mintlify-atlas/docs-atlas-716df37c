@@ -1,20 +1,72 @@
 ---
-title: "Introduction"
-description: "Welcome to your project"
+title: "Clique: Terminal Styling Library for Java"
+sidebarTitle: "Home"
+description: "Clique is a zero-dependency Java library for styling terminal output with ANSI colors, rich UI components, a markup parser, and an extensible theme system."
 ---
 
-Write a short description of your product here. What it does, who it's for, and what they can accomplish with it.
+Clique gives Java developers a clean, expressive API for building beautiful terminal applications — no dependencies, no surprises. From inline markup tags to full-featured tables, progress bars, and custom color themes, Clique covers everything you need to make your CLI output look great.
 
-<Tip>
-  Ready to make this your own? Start by editing this page. Update your `docs.json` file to customize your site. Then fill out the [Quickstart](/quickstart) page.
-</Tip>
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Add Clique to your project and render your first styled output in minutes.
+  </Card>
+  <Card title="Markup Parser" icon="code" href="/styling/markup-parser">
+    Style text with readable markup tags like `[red, bold]Error:[/]`.
+  </Card>
+  <Card title="Components" icon="table-columns" href="/components/overview">
+    Tables, boxes, frames, trees, lists, dividers, and progress bars.
+  </Card>
+  <Card title="Themes" icon="palette" href="/themes/using-themes">
+    Drop in Catppuccin, Dracula, Gruvbox, Nord, or Tokyo Night with one line.
+  </Card>
+</CardGroup>
 
-<Card title="Quickstart" icon="rocket" href="/quickstart">
-  This card links to the quickstart page in your project.
-</Card>
-<Card title="Components" icon="puzzle-piece" href="https://mintlify.com/docs/components">
-  Add cards, callouts, steps, tabs, and more to design and structure your pages.
-</Card>
-<Card title="Settings" icon="gear" href="https://mintlify.com/docs/organize/settings">
-  Set your site name, branding, and navigation in the `docs.json` file.
-</Card>
+## Why Clique?
+
+Clique was built for Java developers who want rich terminal output without the complexity of large dependencies or low-level ANSI wrangling.
+
+<CardGroup cols={3}>
+  <Card title="Zero Dependencies" icon="feather">
+    Ships with no runtime dependencies. Pure Java 21, GraalVM native image compatible.
+  </Card>
+  <Card title="no-color Compliant" icon="ban">
+    Respects the `NO_COLOR` environment variable automatically per the spec.
+  </Card>
+  <Card title="24-bit Color" icon="droplet">
+    Full RGB and per-character gradient rendering on truecolor terminals.
+  </Card>
+</CardGroup>
+
+## Get Started
+
+<Steps>
+  <Step title="Add the dependency">
+    Add `clique-core` to your Maven or Gradle project. Requires JVM 21+.
+  </Step>
+  <Step title="Style your first string">
+    Use the markup parser or Ink API to apply colors and styles to terminal output.
+  </Step>
+  <Step title="Add components">
+    Render tables, progress bars, trees, and more with a single `.render()` call.
+  </Step>
+  <Step title="Customize with themes">
+    Register a built-in theme or build your own to unify your terminal's color palette.
+  </Step>
+</Steps>
+
+## Explore the API
+
+<CardGroup cols={2}>
+  <Card title="Ink" icon="pen-nib" href="/styling/ink">
+    Immutable, chainable ANSI string builder — reuse base styles safely.
+  </Card>
+  <Card title="StyleBuilder" icon="brush" href="/styling/style-builder">
+    Programmatic, type-safe string styling without markup syntax.
+  </Card>
+  <Card title="Build Your Own Theme" icon="swatchbook" href="/themes/build-your-own-theme">
+    Implement `CliqueTheme` and distribute it as a library via the SPI.
+  </Card>
+  <Card title="StyleContext" icon="layer-group" href="/themes/style-context">
+    Scope custom styles to a single parser without touching the global registry.
+  </Card>
+</CardGroup>

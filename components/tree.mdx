@@ -1,0 +1,184 @@
+---
+title: "Tree: Hierarchical Data with Connector Lines"
+sidebarTitle: "Tree"
+description: "Display file structures, dependency graphs, and nested configurations as a terminal tree with ├─ and └─ connectors. Supports markup, arbitrary depth, and colored connectors."
+---
+
+`Tree` renders hierarchical data as an indented structure using `├─` and `└─` connector characters. It's ideal for file trees, dependency graphs, nested configurations, or any parent-child relationship you need to show in a terminal.
+
+## Basic Usage
+
+```java
+Tree tree = Clique.tree("project/")
+    .add("src/")
+    .add("README.md")
+    .add("build.gradle");
+
+tree.render();
+```
+
+<Note>
+  `add()` returns the **newly created child node**, not the parent. To chain off the root, call `add()` on the root variable directly as shown above.
+</Note>
+
+## Nested Trees
+
+To build a subtree, call `add()` on the child reference returned by the first `add()`:
+
+```java
+Tree tree = Clique.tree("project/");
+
+Tree src = tree.add("src/");
+src.add("Main.java");
+src.add("Utils.java");
+
+Tree test = tree.add("test/");
+test.add("MainTest.java");
+
+tree.add("README.md");
+
+tree.render();
+```
+
+## Adding a Pre-created Child
+
+You can also attach a pre-built `Tree` node as a child. `add(Tree)` re-parents the node and returns it:
+
+```java
+Tree child  = Clique.tree("Child node");
+Tree parent = Clique.tree("Parent Node");
+
+Tree attached = parent.add(child); // returns child, not parent
+```
+
+## Arbitrary Depth
+
+Nesting works to any depth by chaining off the returned child references:
+
+```java
+Tree a = tree.add("level 1");
+Tree b = a.add("level 2");
+b.add("level 3");
+```
+
+## Markup in Labels
+
+Markup tags work in any label — root or child. Use them to add color, style, or inline status indicators:
+
+```java
+Tree tree = Clique.tree("[*magenta, bold]my_project/");
+
+Tree src = tree.add("[cyan]src/");
+src.add("[green]Main.java        [dim]✓ ok");
+src.add("[yellow]Utils.java       [dim]⚠ needs review");
+src.add("[red]Broken.java      [dim]✗ error");
+
+tree.add("[dim].gitignore");
+
+tree.render();
+```
+
+## Tree Configuration
+
+Use `TreeConfiguration` to customize the connector style and markup parser. Access the builder via `TreeConfiguration.builder()`.
+
+### Connector Color
+
+Controls the color and style of the connector characters (`├─`, `└─`, `│`). Pass any valid markup style string **without** the surrounding `[]` brackets:
+
+```java
+TreeConfiguration config = TreeConfiguration.builder()
+    .connectorColor("cyan, bold")  // equivalent to [cyan, bold] in markup
+    .build();
+```
+
+You can also pass `AnsiCode` values directly:
+
+```java
+TreeConfiguration config = TreeConfiguration.builder()
+    .connectorColor(ColorCode.CYAN, StyleCode.BOLD)
+    .build();
+```
+
+### Custom Parser
+
+Provide a custom parser for markup processing in node labels:
+
+```java
+ParserConfiguration parserConfig = ParserConfiguration.builder()
+    .delimiter(' ')
+    .build();
+
+TreeConfiguration config = TreeConfiguration.builder()
+    .parser(Clique.parser(parserConfig))
+    .build();
+```
+
+## Full Configuration Example
+
+```java
+TreeConfiguration config = TreeConfiguration.builder()
+    .connectorColor("*cyan, bold") // note: no [] brackets
+    .build();
+
+Tree tree = Clique.tree("[*magenta, bold]clique-lib/", config);
+
+Tree src = tree.add("[*cyan, bold]src/");
+Tree core = src.add("[cyan]core/");
+core.add("[green]Parser.java         [dim]✓ 312 lines");
+core.add("[green]StyleResolver.java  [dim]✓ 198 lines");
+core.add("[yellow]Renderer.java       [dim]⚠ needs review");
+
+Tree tests = tree.add("[*cyan, bold]tests/");
+tests.add("[green, bold]ParserTest.java     [dim]✓ 14/14 pass");
+tests.add("[red, bold]RendererTest.java   [dim]✗  9/14 pass");
+tests.add("[dim, strike]TreeTest.java       skipped");
+
+tree.add("[white]README.md");
+tree.add("[dim].gitignore");
+
+tree.render();
+```
+
+## Getting the Tree as a String
+
+Use `get()` to retrieve the rendered tree as a string without printing:
+
+```java
+String result = tree.get();
+System.out.println(result);
+```
+
+## Parent
+
+Every node holds a reference to its parent. The root node returns `Optional.empty()`:
+
+```java
+Tree src  = tree.add("src/");
+Tree main = src.add("Main.java");
+
+main.parent(); // Optional.of(src)
+tree.parent(); // Optional.empty()  — root has no parent
+```
+
+## Factory Methods
+
+```java
+// Default configuration
+Clique.tree("label");
+
+// Custom TreeConfiguration
+Clique.tree("label", config);
+
+// Named connector color string (no brackets)
+Clique.tree("label", "cyan, bold");
+
+// Direct AnsiCode values
+Clique.tree("label", ColorCode.CYAN, StyleCode.BOLD);
+```
+
+## Things to Watch Out For
+
+- `add()` returns the **child node**, not the parent. Assigning the result of `add()` and chaining more `add()` calls on it builds a subtree, not a flat sibling list.
+- `connectorColor(String)` takes a raw style string like `"cyan, bold"` — do **not** include the `[]` markup brackets.
+- Calling `get()` on a child node renders only the subtree rooted at that node, not the whole tree.

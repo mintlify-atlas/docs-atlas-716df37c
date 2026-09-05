@@ -1,0 +1,260 @@
+---
+title: "Ink: Chainable ANSI String Builder"
+sidebarTitle: "Ink"
+description: "Ink is Clique's immutable, chainable API for applying colors and styles to strings — similar to Chalk. Each method returns a new instance for safe reuse."
+---
+
+`Ink` is Clique's immutable, chainable ANSI string builder — similar in spirit to [Chalk](https://github.com/chalk/chalk). It applies colors and styles directly as ANSI escape sequences, with no markup parser involved. Every method in the chain returns a **new `Ink` instance**, leaving the original unchanged. This makes it safe to build reusable base styles and branch from them freely.
+
+Obtain an `Ink` instance via `Clique.ink()`:
+
+```java
+// Basic usage — chain styles and call on() to produce the styled string
+String result = Clique.ink().red().bold().on("Error");
+
+// With a custom StyleContext for theme or named styles
+String themed = Clique.ink(myContext).of("ctp_mauve").bold().on("Hello");
+```
+
+## Basic Usage
+
+Chain any combination of color, background, and style methods, then call `on()` with the value to style.
+
+```java
+// Color + style
+System.out.println(Clique.ink().red().bold().on("Error"));
+
+// Foreground + background + style
+System.out.println(Clique.ink().white().bgRed().bold().on("Alert"));
+```
+
+Because each method returns a new instance, you can safely build reusable base styles and branch from them:
+
+```java
+Ink bold = Clique.ink().bold();
+
+System.out.println(bold.red().on("error"));    // bold + red
+System.out.println(bold.yellow().on("warn"));  // bold + yellow — original `bold` untouched
+```
+
+---
+
+## Terminal Method
+
+### `on(Object value)`
+
+Applies the accumulated styles to `value` and returns the final styled string. Calls `toString()` on the value, wraps it in the accumulated ANSI sequences, and appends a reset sequence at the end.
+
+```java
+Clique.ink().red().bold().on("Error")    // styled string with reset appended
+Clique.ink().on("plain")                 // no styles — returned as-is
+Clique.ink().green().on(42)              // toString() called on non-string values
+```
+
+---
+
+## Named Style Lookup
+
+### `of(String name)`
+
+Looks up a named style from the instance's attached `StyleContext` and the predefined style registry. Useful for registered theme colors or custom styles that aren't statically knowable at compile time.
+
+Throws `UndefinedStyleException` if the name is not found in either context.
+
+```java
+Clique.ink().of("ctp_mauve").bold().on("Hello")
+```
+
+### `of(AnsiCode code)`
+
+Applies a known `AnsiCode` directly, bypassing name resolution. Use this when you already hold an `AnsiCode` reference.
+
+```java
+Clique.ink().of(MyStyles.MAUVE).bold().on("Hello")
+```
+
+---
+
+## Foreground Colors
+
+### Standard and Bright Colors
+
+| Method | Color |
+|---|---|
+| `black()` | Black |
+| `red()` | Red |
+| `green()` | Green |
+| `yellow()` | Yellow |
+| `blue()` | Blue |
+| `magenta()` | Magenta |
+| `cyan()` | Cyan |
+| `white()` | White |
+| `brightBlack()` | Bright Black |
+| `brightRed()` | Bright Red |
+| `brightGreen()` | Bright Green |
+| `brightYellow()` | Bright Yellow |
+| `brightBlue()` | Bright Blue |
+| `brightMagenta()` | Bright Magenta |
+| `brightCyan()` | Bright Cyan |
+| `brightWhite()` | Bright White |
+
+### `rgb(int red, int green, int blue)`
+
+Applies a 24-bit foreground color using the provided RGB components.
+
+```java
+Clique.ink().rgb(255, 94, 77).bold().on("Hot red")
+```
+
+### `hex(String hexCode)`
+
+Applies a 24-bit foreground color from a hex string. The string must be in `#RRGGBB` format.
+
+```java
+Clique.ink().hex("#FF5733").bold().on("Orange red")
+```
+
+<Note>
+  `rgb()`, `hex()`, `bgRgb()`, and `bgHex()` all require a terminal with truecolor (24-bit) support. Check for support by running `echo $COLORTERM` — it should output `truecolor` or `24bit`. Most modern terminals (iTerm2, Alacritty, Kitty, Windows Terminal, GNOME Terminal) support this by default.
+</Note>
+
+---
+
+## Background Colors
+
+### Standard and Bright Backgrounds
+
+| Method | Color |
+|---|---|
+| `bgBlack()` | Black background |
+| `bgRed()` | Red background |
+| `bgGreen()` | Green background |
+| `bgYellow()` | Yellow background |
+| `bgBlue()` | Blue background |
+| `bgMagenta()` | Magenta background |
+| `bgCyan()` | Cyan background |
+| `bgWhite()` | White background |
+| `brightBgBlack()` | Bright Black background |
+| `brightBgRed()` | Bright Red background |
+| `brightBgGreen()` | Bright Green background |
+| `brightBgYellow()` | Bright Yellow background |
+| `brightBgBlue()` | Bright Blue background |
+| `brightBgMagenta()` | Bright Magenta background |
+| `brightBgCyan()` | Bright Cyan background |
+| `brightBgWhite()` | Bright White background |
+
+### `bgRgb(int red, int green, int blue)`
+
+Applies a 24-bit background color using the provided RGB components.
+
+```java
+Clique.ink().white().bgRgb(30, 30, 30).on("Dark background")
+```
+
+### `bgHex(String hexCode)`
+
+Applies a 24-bit background color from a hex string in `#RRGGBB` format.
+
+```java
+Clique.ink().white().bgHex("#1E1E2E").bold().on("Dark theme background")
+```
+
+---
+
+## Text Styles
+
+| Method | Effect |
+|---|---|
+| `bold()` | Bold / emphasized text |
+| `dim()` | Reduced brightness |
+| `italic()` | Italic text |
+| `underline()` | Underlined text |
+| `doubleUnderline()` | Double underlined text |
+| `strikethrough()` | Strikethrough text |
+| `reverseVideo()` | Swaps foreground and background colors |
+| `invisible()` | Hidden text |
+
+---
+
+## Effects
+
+### `hyperlink(String url)`
+
+Wraps the rendered text in an OSC 8 hyperlink sequence, producing a clickable link in supported terminals.
+
+```java
+Clique.ink().cyan().underline().hyperlink("https://github.com").on("GitHub")
+```
+
+OSC 8 hyperlinks are supported in iTerm2, Kitty, Windows Terminal, and most modern terminal emulators. Unsupported terminals will display the text without link behavior.
+
+### `gradient(RGBAnsiCode from, RGBAnsiCode to)`
+
+Applies a linear RGB gradient across the rendered text by interpolating R, G, and B channels per visible character. Existing ANSI escape sequences within the text are preserved and skipped during colorization. A reset sequence is appended automatically.
+
+```java
+RGBAnsiCode pink = Clique.rgb(255, 105, 180);
+RGBAnsiCode blue = Clique.rgb(100, 149, 237);
+
+System.out.println(Clique.ink().bold().gradient(pink, blue).on("Gradient text"));
+```
+
+<Note>
+  `gradient()` overrides any foreground color set earlier in the chain, since it applies per-character RGB sequences directly. Set `gradient()` last in the chain if you are also using `bold()`, `italic()`, or other non-color styles.
+</Note>
+
+---
+
+## Combining Styles
+
+Any number of methods can be chained together before calling `on()`:
+
+```java
+// Color + style
+Clique.ink().red().bold().on("Error")
+
+// Foreground + background + style
+Clique.ink().white().bgRed().bold().on("Alert")
+
+// RGB foreground + style
+Clique.ink().rgb(255, 94, 77).italic().on("Custom color")
+
+// Multiple styles
+Clique.ink().bold().underline().italic().on("Everything")
+
+// Gradient + additional style
+Clique.ink().bold().gradient(Clique.rgb(255, 105, 180), Clique.rgb(100, 149, 237)).on("Gradient text")
+
+// Gradient applied over italic text
+Clique.ink().italic().gradient(Clique.rgb(255, 105, 180), Clique.rgb(100, 149, 237)).on("Styled gradient")
+
+// Clickable hyperlink with foreground color
+Clique.ink().cyan().underline().hyperlink("https://github.com").on("GitHub")
+
+// Hyperlink with background color
+Clique.ink().white().bgBlue().hyperlink("https://github.com").on("GitHub")
+```
+
+---
+
+## Using with a StyleContext
+
+Pass a `StyleContext` when constructing an `Ink` instance to make registered theme or custom styles accessible via `of(String name)`:
+
+```java
+StyleContext ctx = StyleContext.builder()
+    .add("ctp_mauve", myMauveCode)
+    .add("ctp_sky",   mySkyCode)
+    .build();
+
+Ink ink = Clique.ink(ctx);
+
+System.out.println(ink.of("ctp_mauve").bold().on("Hello"));
+System.out.println(ink.of("ctp_sky").on("World"));
+```
+
+Style names are resolved in the following order:
+
+1. **Local `StyleContext`** passed to `Clique.ink(ctx)`
+2. **Global style registry** (`Clique.registerStyle()`)
+3. **Predefined colors and styles** (Clique's built-ins)
