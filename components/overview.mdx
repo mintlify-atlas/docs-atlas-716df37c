@@ -1,7 +1,7 @@
 ---
-title: "Clique Components: Terminal UI Building Blocks"
+title: "Clique Component Interface: Consistent Rendering API"
 sidebarTitle: "Overview"
-description: "All Clique components implement the Component interface, providing get(), render(), and render(PrintStream) for consistent terminal output across every UI element."
+description: "All Clique components implement the Component interface, providing get(), render(), and render(PrintStream) for consistent terminal output."
 ---
 
 The `Component` interface is the foundation of every renderable element in Clique. It defines a minimal, consistent contract: produce a styled string, and know how to print it. Every built-in component — `Box`, `Divider`, `Frame`, `Tree`, `ItemList`, `Table`, and `ProgressBar` — implements this interface, so you can treat them all the same way at the call site.

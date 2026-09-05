@@ -60,13 +60,26 @@ Clique.parser().print("[bg_ctp_surface0, ctp_blue] INFO [/] Starting up...");
 
 ## Registering Multiple Themes
 
-Need more than one? Register everything available on the classpath at once:
+Register specific themes by name using the varargs or `Collection` overloads:
+
+```java
+Clique.registerThemes("catppuccin-mocha", "dracula", "nord");
+```
+
+Or pass a pre-built list:
+
+```java
+List<String> names = List.of("gruvbox-dark", "tokyo-night");
+Clique.registerThemes(names);
+```
+
+To register everything available on the classpath at once, use `registerAvailableThemes()`:
 
 ```java
 Clique.registerAvailableThemes();
 
 Clique.parser().print("[ctp_mauve]Catppuccin[/] meets [tokyo_cyan]Tokyo Night[/]");
-Clique.parser().print("[nord_frost0]Nord[/] meets [drac_pink]Dracula[/]");
+Clique.parser().print("[nord_frost0]Nord[/] meets [drac_magenta]Dracula[/]");
 ```
 
 ## Color Reference
@@ -160,9 +173,9 @@ Theme color names are expressive but verbose. For a real application it's worth 
 ```java
 Clique.registerTheme("nord");
 
-Clique.registerStyle("error",   new RGBColor(191, 97,  106, false)); // nord_red
-Clique.registerStyle("success", new RGBColor(163, 190, 140, false)); // nord_green
-Clique.registerStyle("info",    new RGBColor(136, 192, 208, false)); // nord_frost2
+Clique.registerStyle("error",   Clique.rgb(191, 97,  106)); // nord_red
+Clique.registerStyle("success", Clique.rgb(163, 190, 140)); // nord_green
+Clique.registerStyle("info",    Clique.rgb(136, 192, 208)); // nord_frost2
 
 Clique.parser().print("[error]Failed to connect[/]");
 Clique.parser().print("[success]Connection established[/]");

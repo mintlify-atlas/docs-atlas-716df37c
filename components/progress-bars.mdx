@@ -1,7 +1,7 @@
 ---
 title: "Progress Bars: Visual Feedback for Long Operations"
 sidebarTitle: "Progress Bars"
-description: "Track long-running operations with Clique's progress bars. Includes five built-in presets, format string tokens, dynamic style ranges, easing animations, and iterable collection wrapping."
+description: "Track long-running operations visually. Includes five style presets, format string tokens, dynamic style ranges, easing animations, and iterable wrapping."
 ---
 
 Progress bars provide inline visual feedback for long-running operations. Clique includes five built-in style presets, a flexible format string with token placeholders, dynamic per-range styling, smooth easing animations, and a one-liner iterable wrapper for collection processing.
@@ -204,6 +204,12 @@ ProgressBarConfiguration config = ProgressBarConfiguration.builder()
 ## Easing Animations
 
 Easing gives progress bars smooth, animated transitions between values instead of instant jumps. It's opt-in and runs on the calling thread.
+
+You can attach an `EasingConfiguration` directly in the factory call as a shorthand:
+
+```java
+ProgressBar bar = Clique.progressBar(100, EasingConfiguration.DEFAULT);
+```
 
 ### Constants
 

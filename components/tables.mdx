@@ -1,7 +1,7 @@
 ---
-title: "Tables: Structured Data in the Terminal"
+title: "Tables: Display Structured Terminal Data in Clique"
 sidebarTitle: "Tables"
-description: "Render structured data with Clique's table component. Supports five border styles, per-column alignment, markup in cells, null handling, and dynamic cell updates."
+description: "Render structured data in the terminal. Supports five border styles, per-column alignment, markup in cells, null handling, and cell updates."
 ---
 
 Tables let you display structured data in a clean, formatted grid. Clique supports five border styles, per-column alignment overrides, inline markup in any cell, and dynamic updates after creation. Tables do not support multi-line cell content.
@@ -13,7 +13,7 @@ Choose a style by passing a `TableType` to `Clique.table()`:
 | Style | Enum Value | Description |
 |---|---|---|
 | ASCII | `TableType.ASCII` | Standard borders using `-`, `|`, `+` characters |
-| Compact / Minimal | `TableType.COMPACT` / `TableType.MINIMAL` | Minimalist layout with fewer borders |
+| Compact / Minimal | `TableType.COMPACT` | Minimalist layout with fewer borders |
 | Box Draw | `TableType.BOX_DRAW` | Box-drawing characters; **default** |
 | Rounded Box Draw | `TableType.ROUNDED_BOX_DRAW` | Box-draw characters with rounded corners |
 | Markdown | `TableType.MARKDOWN` | GitHub-style markdown table format |

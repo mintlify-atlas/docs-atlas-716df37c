@@ -1,7 +1,7 @@
 ---
-title: "Tree: Hierarchical Data with Connector Lines"
+title: "Tree: Hierarchical Terminal Trees with Connector Lines"
 sidebarTitle: "Tree"
-description: "Display file structures, dependency graphs, and nested configurations as a terminal tree with ├─ and └─ connectors. Supports markup, arbitrary depth, and colored connectors."
+description: "Display file structures as a terminal tree with ├─ and └─ connectors. Supports markup labels, arbitrary nesting depth, and colored connectors."
 ---
 
 `Tree` renders hierarchical data as an indented structure using `├─` and `└─` connector characters. It's ideal for file trees, dependency graphs, nested configurations, or any parent-child relationship you need to show in a terminal.
@@ -180,5 +180,6 @@ Clique.tree("label", ColorCode.CYAN, StyleCode.BOLD);
 ## Things to Watch Out For
 
 - `add()` returns the **child node**, not the parent. Assigning the result of `add()` and chaining more `add()` calls on it builds a subtree, not a flat sibling list.
+- Passing a node to `add()` where the node is the same instance as the receiver throws `UnsupportedOperationException`.
 - `connectorColor(String)` takes a raw style string like `"cyan, bold"` — do **not** include the `[]` markup brackets.
 - Calling `get()` on a child node renders only the subtree rooted at that node, not the whole tree.

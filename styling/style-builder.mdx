@@ -1,7 +1,7 @@
 ---
 title: "StyleBuilder: Type-Safe ANSI String Builder"
 sidebarTitle: "StyleBuilder"
-description: "StyleBuilder provides an imperative, type-safe API for composing ANSI-styled strings by chaining append and appendAndReset calls with ColorCode and StyleCode enums."
+description: "StyleBuilder is Clique's type-safe ANSI string builder. Build styled terminal output segment by segment with ColorCode and StyleCode enum values."
 ---
 
 `StyleBuilder` provides an imperative, type-safe API for composing ANSI-styled strings segment by segment. Instead of writing markup tags or chaining fluent style methods, you call `append()` and `appendAndReset()` on a builder, passing `ColorCode` and `StyleCode` enum values alongside each text segment. The result is a fully styled string ready for printing.
@@ -68,12 +68,13 @@ The `WARN: ` prefix is yellow and bold because `append` doesn't reset between th
 
 ## Getting the Result as a String
 
-The last `append` or `appendAndReset` call in the chain returns the fully composed `String`. Pass it to `System.out.println` or store it for later use:
+Call `toString()` at the end of the chain to get the fully composed `String`. Pass it to `System.out.println` or store it for later use:
 
 ```java
 String output = Clique.styleBuilder()
     .appendAndReset("Title: ",   ColorCode.CYAN, StyleCode.BOLD)
-    .appendAndReset("My Document", ColorCode.WHITE);
+    .appendAndReset("My Document", ColorCode.WHITE)
+    .toString();
 
 System.out.println(output);
 ```
